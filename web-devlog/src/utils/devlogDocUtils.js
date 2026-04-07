@@ -44,7 +44,7 @@ export function splitExecutiveSummary(markdown) {
   const lines = markdown.split(/\r?\n/)
   let start = -1
   for (let i = 0; i < lines.length; i++) {
-    if (/^##\s+Executive Summary\s*$/i.test(lines[i].trim())) {
+    if (/^##\s+.*Executive Summary\s*$/i.test(lines[i].trim())) {
       start = i
       break
     }
@@ -68,6 +68,47 @@ export function splitExecutiveSummary(markdown) {
  * Splits "Next steps" into a dedicated card: matches `## …` or `### …` when the
  * title contains "next step(s)" (case-insensitive).
  */
+/**
+ * TOC for the week page: bookend anchors (Opening / Main / Closing) plus ##/### from each region.
+ */
+export function buildDevlogWeekToc({
+  executiveBody = '',
+  mainBody = '',
+  nextStepsBody = '',
+} = {}) {
+  const items = []
+  const exec = typeof executiveBody === 'string' && executiveBody.trim()
+  const main = typeof mainBody === 'string' && mainBody.trim()
+  const next = typeof nextStepsBody === 'string' && nextStepsBody.trim()
+
+  if (exec) {
+    items.push({
+      level: 2,
+      text: 'Opening · Executive summary',
+      id: 'executive-summary-panel',
+    })
+    for (const t of extractTocFromMarkdown(exec)) {
+      if (/^executive summary$/i.test(t.text)) continue
+      items.push(t)
+    }
+  }
+
+  if (main) {
+    items.push({ level: 2, text: 'Main notes', id: 'week-main-body' })
+    items.push(...extractTocFromMarkdown(main))
+  }
+
+  if (next) {
+    items.push({
+      level: 2,
+      text: 'Closing · Next steps',
+      id: 'next-steps-panel',
+    })
+  }
+
+  return items
+}
+
 export function splitNextStepsBlock(markdown) {
   if (!markdown || typeof markdown !== 'string') {
     return { main: '', nextSteps: null }

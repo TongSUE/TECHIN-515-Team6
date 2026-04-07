@@ -29,6 +29,15 @@ export default {
         'grid-soft':
           'linear-gradient(to right, rgb(148 163 184 / 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.08) 1px, transparent 1px)',
       },
+      keyframes: {
+        'gradient-flow': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+      },
+      animation: {
+        'gradient-flow': 'gradient-flow 12s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

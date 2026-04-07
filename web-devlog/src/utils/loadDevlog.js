@@ -57,6 +57,50 @@ function buildCardSummary(data, bodyMarkdown) {
   return '[Summary placeholder]'
 }
 
+function normalizePlannedNext(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw.map((item, i) => {
+    if (typeof item === 'string') {
+      const label = item.trim() || 'Task'
+      const id = label
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+      return {
+        id: id || `task-${i}`,
+        label,
+        description: undefined,
+      }
+    }
+    if (item && typeof item === 'object') {
+      const label = String(item.label ?? item.title ?? 'Task').trim()
+      let id
+      if (item.id != null && String(item.id).trim()) {
+        id = String(item.id).trim()
+      } else {
+        id =
+          label
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '') || `task-${i}`
+      }
+      const description =
+        typeof item.description === 'string' ? item.description.trim() : undefined
+      return { id, label: label || 'Task', description }
+    }
+    return { id: `task-${i}`, label: 'Task', description: undefined }
+  })
+}
+
+function normalizePriorProgress(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out = {}
+  for (const [k, v] of Object.entries(raw)) {
+    out[String(k)] = Boolean(v)
+  }
+  return {}
+}
+
 function normalizeCredits(raw) {
   if (!Array.isArray(raw)) return []
   return raw.map((item) => {
@@ -98,6 +142,8 @@ function weeksFromMarkdown() {
       body: content,
       images: Array.isArray(data.images) ? data.images : [],
       credits: normalizeCredits(data.credits),
+      plannedNext: normalizePlannedNext(data.planned_next),
+      priorWeekProgress: normalizePriorProgress(data.prior_week_progress),
     })
   }
   return rows.sort((a, b) => b.week - a.week)
@@ -122,6 +168,8 @@ function weeksFromJson() {
       body,
       images: Array.isArray(entry.images) ? entry.images : [],
       credits: normalizeCredits(entry.credits),
+      plannedNext: normalizePlannedNext(entry.planned_next),
+      priorWeekProgress: normalizePriorProgress(entry.prior_week_progress),
     }
   })
 }
@@ -149,4 +197,26 @@ export function getDevlogWeekByNumber(weekParam) {
 
 export function getGithubRepoUrl() {
   return devlogData.githubRepo ?? '#'
+}
+
+/**
+ * For week W (W > 1): tasks promised in week W-1 (`planned_next`), with `done`
+ * merged from week W's `prior_week_progress` map (id -> boolean).
+ */
+export function getCarryoverTasksForWeek(weekNum, allWeeks) {
+  if (!Number.isFinite(weekNum) || weekNum <= 1) return null
+  const prev = allWeeks.find((w) => w.week === weekNum - 1)
+  if (!prev?.plannedNext?.length) return null
+  const current = allWeeks.find((w) => w.week === weekNum)
+  const progress = current?.priorWeekProgress ?? {}
+  return {
+    fromWeek: prev.week,
+    currentWeek: weekNum,
+    tasks: prev.plannedNext.map((t) => ({
+      id: t.id,
+      label: t.label,
+      description: t.description,
+      done: Boolean(progress[t.id]),
+    })),
+  }
 }

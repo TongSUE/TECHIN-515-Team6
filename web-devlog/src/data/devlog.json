@@ -1,22 +1,22 @@
 {
-  "githubRepo": "https://github.com/YOUR_ORG/YOUR_REPO",
+  "githubRepo": "https://github.com/TongSUE/TECHIN-515-Team6",
   "weeks": [
     {
       "week": 2,
-      "date": "[Date Placeholder]",
-      "title": "[Devlog Title Placeholder]",
+      "date": "TBD",
+      "title": "Week 2 (draft — replace via week-02.md or edit here)",
       "status": "In Progress",
-      "summary": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Short card summary only; full Markdown lives in the optional body field or in a weekly .md file.",
-      "body": "## Section A\n\n[Full devlog Markdown placeholder.]\n\n| Col | Col |\n| --- | --- |\n| a | b |",
+      "summary": "Draft entry to demonstrate the Week 1 → Week 2 carryover checklist on the timeline. Add src/content/devlog/week-02.md to override this stub.",
+      "prior_week_progress": {
+        "schematic-pcb": false,
+        "cad-modeling": false,
+        "firmware-framework": true,
+        "ml-deliverable": false
+      },
+      "body": "## Executive Summary\n\n_Draft._ When you add `src/content/devlog/week-02.md`, it replaces this body. The carryover block on the homepage reads **Week 1 `planned_next`** and merges **Week 2 `prior_week_progress`** (see JSON or front matter).\n\n## Notes\n\nReplace with real Week 2 content.\n",
       "credits": [
-        { "name": "Lucia", "initials": "L", "role": "[Role placeholder]" },
-        { "name": "Yutong", "initials": "Y", "role": "[Role placeholder]" }
-      ],
-      "images": [
-        {
-          "src": "images/devlog/placeholder.svg",
-          "caption": "[Image caption placeholder]"
-        }
+        { "name": "Lucia", "initials": "L", "tags": ["Hardware"] },
+        { "name": "Yutong", "initials": "Y", "tags": ["Software"] }
       ]
     }
   ]

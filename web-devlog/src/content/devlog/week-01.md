@@ -17,11 +17,24 @@ credits:
       - User Flow design
       - Devlog site
       - System architecture
+planned_next:
+  - id: schematic-pcb
+    label: Schematic & PCB
+    description: Draw the overall system schematic and begin initial PCB layout routing.
+  - id: cad-modeling
+    label: CAD Modeling
+    description: Design the 3D-printable enclosure based on our component dimensions.
+  - id: firmware-framework
+    label: Firmware Framework
+    description: Scaffold the ESP32 C++ codebase (sensor loops, WiFi setup) so we can flash immediately when parts arrive.
+  - id: ml-deliverable
+    label: ML Deliverable
+    description: Finalize the Data + ML Pipeline presentation slide.
 ---
 
 ## Executive Summary
 
-This week, we officially kicked off **AuraSync**—a standalone, context-aware scent dispenser designed for intimate home spaces. We locked down our foundational document (Project Register and Ownership), translating our high-level concept into a concrete system architecture. Our core innovation is a **Chemical Feedback Loop**: using a VOC sensor to detect scent dispersal and trigger a machine-learning cooldown state, preventing the runaway over-spraying common in dumb timed dispensers. 
+This week, we officially kicked off **AuraSync**—a standalone, context-aware scent dispenser designed for intimate home spaces. We locked down our foundational document (Project Register and Ownership), translating our high-level concept into a concrete system architecture. Our core innovation is a **Chemical Feedback Loop**: using a VOC sensor to detect scent dispersal and trigger a machine-learning cooldown state, preventing the runaway over-spraying common in dumb timed dispensers.
 
 Along with defining the architecture, we finalized our hardware stack, ordered components, established the end-to-end user flow, and built this very devlog website to track our progress.
 
@@ -35,7 +48,7 @@ Along with defining the architecture, we finalized our hardware stack, ordered c
 
 ## 1. Hardware & BOM
 
-We evaluated multiple component options, comparing trade-offs to select the most reliable configuration for both prototyping and our final demonstration. 
+We evaluated multiple component options, comparing trade-offs to select the most reliable configuration for both prototyping and our final demonstration.
 
 * **Microcontroller:** We selected the **XIAO ESP32-S3** (dual-core, native I2S, vector instructions) over the ESP32-C3 to ensure enough compute headroom for Edge ML and audio processing.
 * **Environmental Sensor:** The **BME680** was chosen because its VOC sensing is mandatory for our closed-loop feedback design (the BME280 was rejected for lacking this).
@@ -64,46 +77,90 @@ We evaluated multiple component options, comparing trade-offs to select the most
 To ensure a seamless and "quiet" user experience, we designed a defensive, multi-modal user flow. The system accommodates automated ML triggers, physical buttons, and voice commands, all safeguarded by an underlying physical cooldown lock.
 
 ### Phase 1 · Onboarding
+
 * **Action:** User fills the reservoir, powers on the device, and provisions WiFi via a companion app (e.g., Blynk).
 * **State:** Device connects to the Cloud Dashboard, establishes baseline environmental readings, and enters the `Idle` state.
 
 ### Phase 2 · Edge ML
+
 * **Sensing:** The BME680 and I2S Mic continuously capture environmental and acoustic data.
 * **Inference:** A 30-second sliding window is processed by the ESP32's Edge ML model to classify intent (e.g., *Shower* vs. *Odor*).
 * **Actuation & Feedback:** If intent is confirmed, the pump sprays for 2 seconds. The VOC sensor detects the fragrance spike, forcing the system into a `Cooldown` state until the air clears.
 
 ### Phase 3 · Voice / Manual
+
 * **Trigger:** User speaks a command ("Aura, fresh the room") or presses the physical button.
 * **Logic Gate:**
   * If the system is `Idle`, execute spray immediately.
   * If the system is `Cooldown`, the request is **rejected** (subtle LED/audio feedback) to prevent scent overload.
 
 ### Phase 4 · Cloud
+
 * **Dashboard:** Syncs daily usage telemetry and air quality trends to the cloud.
 * **Maintenance:** Software estimates liquid consumption based on pump run-time and pushes refill reminders when levels drop below 10%.
 
-*User Flow Diagram (Mermaid Render):*
+### User flow diagram
+
+Interactive diagram (HTML + icons) aligned with the four phases above: onboarding strip, setup/baseline, idle hub, parallel ML and voice/button paths, actuation, cooldown with feedback to idle, and cloud telemetry.
+
+<div class="user-flow-diagram-embed"></div>
+
+*State machine reference (Mermaid):*
+
 ```mermaid
 stateDiagram-v2
     [*] --> Setup
     Setup --> Idle : WiFi Connected & Baseline Set
-    
+
     Idle --> ML_Processing : Sensor Data (30s Window)
     ML_Processing --> Actuation : Intent Detected
-    
+
     Idle --> Actuation : Voice/Button Override
-    
+
     Actuation --> Cooldown : Pump Triggers & VOC Spikes
     Cooldown --> Cooldown : Reject Voice/Button (Saturation Prevented)
     Cooldown --> Idle : VOC Returns to Baseline
 ```
-*(Design note: High-fidelity Figma user flow diagram will be inserted here in upcoming weeks).*
 
 ---
 
 ## 3. Data & ML
 
-`[Placeholder: Detailed documentation of our data collection parameters, feature extraction logic (e.g., gradients over absolute values), and Edge Impulse training pipeline. Scheduled for completion soon.]`
+We treat environmental classification as a **Sensor Fusion + DSP** problem. Absolute sensor values are meaningless due to different room baselines. We focus on temporal trends and multi-modal context.
+
+### 1. Sensor Data Mapping
+
+What data are we collecting, and why?
+
+| Sensor | Data Feature (DSP) | Core Purpose | Importance |
+| :--- | :--- | :--- | :--- |
+| **BME680 (Gas)** | **VOC Gradient** (\(\Delta VOC/\Delta t\)) | **"The Nose":** Detect toilet odors and track scent decay. | **High** (Core trigger & Cooldown lock) |
+| **BME680 (Climate)** | **Humidity Gradient** (\(\Delta H/\Delta t\)) | **"The Skin":** Detect shower steam and rapid drafts. | **High** (Shower trigger & Anomaly defense) |
+| **I2S Mic** | **Frequency Energy** (FFT) | **"The Ear":** Distinguish water flow vs. hair dryers. | **Medium** (False-alarm prevention) |
+
+### 2. Core Target Scenarios
+
+How the system combines data to understand user context:
+
+* **🚽 Odor (Target):**
+    * *Trigger:* Sharp VOC spike + Stable Humidity + Flush sounds.
+    * *Action:* Trigger Actuation → Enter Cooldown.
+* **🚿 Shower (Target):**
+    * *Trigger:* Steep positive Humidity slope + Water flow sounds.
+    * *Action:* Trigger Actuation (post-shower) → Enter Cooldown.
+* **💄 Grooming (False Alarm):**
+    * *Trigger:* Sudden VOC spike (hairspray) + Hair dryer / spray sounds.
+    * *Action:* **Ignore.** Suppress actuation to prevent scent overload.
+* **🚪 Door Draft (Anomaly):**
+    * *Trigger:* Unnatural, steep negative Temp/Humidity drop.
+    * *Action:* **Pause ML.** Recalibrate baseline for 60 seconds.
+
+### 3. Edge ML Logic (How it thinks)
+
+* **Trend Over Value:** Compute data slopes (derivatives), not raw numbers.
+* **30-Sec Sliding Window:** ML model analyzes a 30-second data buffer, not instantaneous snapshots.
+* **Sensor Fusion:** Merge acoustic features with environmental gradients to train a lightweight classifier (e.g., Random Forest via Edge Impulse).
+* **Confidence Output:** Model outputs a probability array (e.g., `[Shower: 85%, Odor: 10%, Idle: 5%]`). Actuate only on high confidence.
 
 ---
 
@@ -113,7 +170,7 @@ To maintain a professional record of our execution, we built this static single-
 
 ---
 
-## 5. Next Steps
+## Next Steps
 
 Due to hardware shipping delays, physical testing is blocked for next week. We will pivot to parallel engineering tasks:
 

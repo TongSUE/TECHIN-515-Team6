@@ -3,13 +3,15 @@ import { motion } from 'framer-motion'
 const people = [
   {
     name: 'Yutong',
-    role: '[Role Placeholder]',
-    bio: 'Lorem ipsum dolor sit amet. [Short bio placeholder.]',
+    initials: 'Y',
+    role: 'User flow · devlog · system architecture',
+    bio: 'Owns the end-to-end interaction model (onboarding, ML path, voice/manual gates, cloud) and this React + Vite devlog surface.',
   },
   {
     name: 'Lucia',
-    role: '[Role Placeholder]',
-    bio: 'Lorem ipsum dolor sit amet. [Short bio placeholder.]',
+    initials: 'L',
+    role: 'Hardware · procurement · system architecture',
+    bio: 'Drives BOM decisions, sensor and actuator bring-up, and the hardware side of the architecture narrative.',
   },
 ]
 
@@ -24,8 +26,12 @@ export default function Team() {
           The Team
         </p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink dark:text-slate-50 sm:text-4xl">
-          [Team section heading placeholder]
+          Who is shipping AuraSync
         </h2>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-soft">
+          Ownership mirrors the credits block in each weekly entry — here for a
+          stable homepage snapshot.
+        </p>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2">
           {people.map((p, i) => (
@@ -38,7 +44,7 @@ export default function Team() {
               className="glass-panel rounded-2xl p-8"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/90 to-teal-400/90 text-lg font-bold text-white shadow-md">
-                {p.name.slice(0, 1)}
+                {p.initials}
               </div>
               <h3 className="mt-5 text-xl font-semibold text-ink dark:text-slate-100">
                 {p.name}
@@ -54,7 +60,7 @@ export default function Team() {
         </div>
 
         <p className="mt-12 text-center text-sm text-ink-soft">
-          [Footer line placeholder]
+          MSTI Hardware–Software Lab II · AuraSync is a student project devlog.
         </p>
       </div>
     </section>

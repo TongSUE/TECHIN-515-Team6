@@ -1,6 +1,9 @@
 import { motion, useReducedMotion } from 'framer-motion'
+import { BookOpen } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import DevlogCarryoverChecklist from './DevlogCarryoverChecklist.jsx'
 import DevlogCredits from './DevlogCredits.jsx'
+import { getCarryoverTasksForWeek } from '../utils/loadDevlog.js'
 
 const statusStyles = {
   Blocking:
@@ -28,20 +31,23 @@ export default function DevlogTimeline({ weeks }) {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent dark:text-accent-mint">
           Weekly Devlog
         </p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink dark:text-slate-50 sm:text-4xl">
-          [Devlog timeline heading placeholder]
+        <h2 className="mt-3 flex flex-wrap items-center gap-3 text-3xl font-semibold tracking-tight text-ink dark:text-slate-50 sm:text-4xl">
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/12 text-accent dark:bg-accent-mint/15 dark:text-accent-mint">
+            <BookOpen className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+          </span>
+          <span>Build log, week by week</span>
         </h2>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
-          Cards show a short summary only. Open a week to read the full Markdown
-          report (tables, quotes, and figures). Primary source:{' '}
+          Each card is a quick snapshot; open a week for the full write-up (BOM
+          tables, Mermaid diagrams, ML notes). Source files live in{' '}
           <code className="rounded-md bg-white/90 px-1.5 py-0.5 text-sm text-ink shadow-sm dark:bg-slate-800 dark:text-slate-200">
             src/content/devlog/*.md
           </code>
-          ; fallback:{' '}
+          , with{' '}
           <code className="rounded-md bg-white/90 px-1.5 py-0.5 text-sm text-ink shadow-sm dark:bg-slate-800 dark:text-slate-200">
             src/data/devlog.json
-          </code>
-          .
+          </code>{' '}
+          as a fallback scaffold.
         </p>
 
         <ol className="relative mt-14 space-y-10 border-l border-slate-200 pl-8 dark:border-slate-700">
@@ -51,6 +57,7 @@ export default function DevlogTimeline({ weeks }) {
               status && status in statusStyles
                 ? statusStyles[status]
                 : defaultStatusClass
+            const carry = getCarryoverTasksForWeek(w.week, weeks)
 
             return (
               <motion.li
@@ -59,14 +66,17 @@ export default function DevlogTimeline({ weeks }) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.45, delay: index * 0.04 }}
-                className="relative"
+                className="group/tl relative"
               >
                 <span
-                  className="absolute -left-[39px] top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-accent shadow-sm dark:border-slate-900 dark:bg-accent-mint"
+                  className="absolute -left-[39px] top-2 flex h-5 w-5 items-center justify-center"
                   aria-hidden
-                />
+                >
+                  <span className="absolute inset-0 rounded-full bg-accent/45 opacity-0 transition duration-500 group-hover/tl:scale-[1.85] group-hover/tl:opacity-100 group-hover/tl:animate-ping dark:bg-accent-mint/40 dark:group-hover/tl:animate-none dark:group-hover/tl:scale-150 dark:group-hover/tl:opacity-80" />
+                  <span className="relative z-[1] h-5 w-5 rounded-full border-2 border-white bg-accent shadow-sm ring-2 ring-accent/20 transition group-hover/tl:ring-accent/50 dark:border-slate-900 dark:bg-accent-mint dark:ring-accent-mint/25 dark:group-hover/tl:ring-accent-mint/50" />
+                </span>
                 <article
-                  className="glass-panel group rounded-2xl p-6 transition duration-300 will-change-transform hover:-translate-y-1 hover:shadow-glass-lg dark:hover:shadow-[0_24px_64px_rgb(0_0_0/0.35)]"
+                  className="glass-panel rounded-2xl p-6 transition duration-300 will-change-transform group-hover/tl:-translate-y-1 group-hover/tl:shadow-glass-lg dark:group-hover/tl:shadow-[0_24px_64px_rgb(0_0_0/0.35)]"
                 >
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-slate-900/5 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/10 dark:text-slate-300">
@@ -93,6 +103,16 @@ export default function DevlogTimeline({ weeks }) {
                     {w.summary}
                   </p>
 
+                  {carry ? (
+                    <div className="mt-4">
+                      <DevlogCarryoverChecklist
+                        fromWeek={carry.fromWeek}
+                        currentWeek={carry.currentWeek}
+                        tasks={carry.tasks}
+                      />
+                    </div>
+                  ) : null}
+
                   {w.credits?.length ? (
                     <div className="mt-4">
                       <DevlogCredits credits={w.credits} size="sm" />
@@ -102,10 +122,13 @@ export default function DevlogTimeline({ weeks }) {
                   <div className="mt-5">
                     <Link
                       to={`/devlog/${w.week}`}
-                      className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:shadow-white/10 dark:hover:bg-slate-100"
+                      className="group/btn inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:shadow-white/10 dark:hover:bg-slate-100"
                     >
                       Open full entry
-                      <span aria-hidden className="text-xs opacity-80">
+                      <span
+                        aria-hidden
+                        className="text-xs opacity-80 transition group-hover/btn:translate-x-0.5 group-hover/btn:opacity-100"
+                      >
                         →
                       </span>
                     </Link>

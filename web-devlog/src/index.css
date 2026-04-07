@@ -47,11 +47,56 @@
   .glass-panel {
     @apply border border-white/40 bg-white/55 shadow-glass backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/50 dark:shadow-none;
   }
+
+  .title-gradient-animated {
+    background-image: linear-gradient(
+      110deg,
+      rgb(15 23 42) 0%,
+      rgb(59 130 246) 25%,
+      rgb(20 184 166) 50%,
+      rgb(109 40 217) 75%,
+      rgb(15 23 42) 100%
+    );
+    background-size: 220% auto;
+  }
+
+  .dark .title-gradient-animated {
+    background-image: linear-gradient(
+      110deg,
+      rgb(248 250 252) 0%,
+      rgb(125 211 252) 22%,
+      rgb(94 234 212) 48%,
+      rgb(196 181 253) 74%,
+      rgb(248 250 252) 100%
+    );
+  }
 }
 
 /* Devlog Markdown: tighten top spacing after the glass panel edge */
 @layer components {
   .markdown-doc > :first-child {
     margin-top: 0;
+  }
+
+  /* KaTeX (remark-math + rehype-katex): sizing & dark mode */
+  .markdown-doc .katex {
+    font-size: 1.05em;
+  }
+
+  .markdown-doc .katex-display {
+    margin: 1rem 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.35rem 0;
+  }
+
+  .dark .markdown-doc .katex {
+    color: rgb(226 232 240);
+  }
+
+  .dark .markdown-doc .katex .mord,
+  .dark .markdown-doc .katex .mrel,
+  .dark .markdown-doc .katex .mop {
+    color: inherit;
   }
 }

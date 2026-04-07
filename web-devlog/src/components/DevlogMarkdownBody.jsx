@@ -7,9 +7,12 @@ import {
 import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import remarkBreaks from 'remark-breaks'
+import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSlug from 'rehype-slug'
+import UserFlowDiagramAuraSync from './UserFlowDiagramAuraSync.jsx'
 import { resolveAssetUrl } from '../utils/resolveAssetUrl.js'
 
 const linkClass =
@@ -367,6 +370,22 @@ function createMarkdownComponents({ checklistStyle = false } = {}) {
         </strong>
       )
     },
+    div({ className, children, ...props }) {
+      const raw = Array.isArray(className)
+        ? className.join(' ')
+        : typeof className === 'string'
+          ? className
+          : ''
+      const classes = raw.split(/\s+/).filter(Boolean)
+      if (classes.includes('user-flow-diagram-embed')) {
+        return <UserFlowDiagramAuraSync />
+      }
+      return (
+        <div className={className} {...props}>
+          {children}
+        </div>
+      )
+    },
     em({ children }) {
       return <em className="italic">{children}</em>
     },
@@ -381,7 +400,8 @@ function createMarkdownComponents({ checklistStyle = false } = {}) {
 }
 
 /**
- * @param {'default' | 'nextSteps'} variant — `nextSteps` enables task-list / next-steps table styling and allows raw HTML (e.g. checkboxes in tables).
+ * @param {'default' | 'nextSteps'} variant — `nextSteps` enables task-list / next-steps table styling.
+ * Both variants use `rehype-raw` (trusted weekly `.md` only): embeds like `user-flow-diagram-embed`, table checkboxes in Next steps.
  */
 export default function DevlogMarkdownBody({ markdown, variant = 'default' }) {
   const checklistStyle = variant === 'nextSteps'
@@ -390,18 +410,29 @@ export default function DevlogMarkdownBody({ markdown, variant = 'default' }) {
     [checklistStyle],
   )
 
-  const remarkPlugins = useMemo(
-    () =>
-      checklistStyle
-        ? [remarkGfm]
-        : [remarkGfm, remarkBreaks],
-    [checklistStyle],
-  )
+  const remarkPlugins = useMemo(() => {
+    const math = [
+      remarkMath,
+      { singleDollarTextMath: false },
+    ]
+    return checklistStyle
+      ? [remarkGfm, math]
+      : [remarkGfm, math, remarkBreaks]
+  }, [checklistStyle])
 
   const rehypePlugins = useMemo(
-    () =>
-      checklistStyle ? [rehypeSlug, rehypeRaw] : [rehypeSlug],
-    [checklistStyle],
+    () => [
+      rehypeKatex,
+      {
+        errorColor: '#cc0000',
+        throwOnError: false,
+        strict: false,
+        trust: false,
+      },
+      rehypeRaw,
+      rehypeSlug,
+    ],
+    [],
   )
 
   return (

@@ -1,12 +1,16 @@
 import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import DevlogCarryoverChecklist from '../components/DevlogCarryoverChecklist.jsx'
 import DevlogCredits from '../components/DevlogCredits.jsx'
 import DevlogMarkdownBody from '../components/DevlogMarkdownBody.jsx'
 import DevlogToc from '../components/DevlogToc.jsx'
-import { getDevlogWeekByNumber } from '../utils/loadDevlog.js'
 import {
-  extractTocFromMarkdown,
+  getCarryoverTasksForWeek,
+  getDevlogWeekByNumber,
+  getDevlogWeeks,
+} from '../utils/loadDevlog.js'
+import {
+  buildDevlogWeekToc,
   splitExecutiveSummary,
   splitNextStepsBlock,
 } from '../utils/devlogDocUtils.js'
@@ -35,6 +39,11 @@ function scrollToDevlogSection() {
 export default function DevlogWeekPage() {
   const { week } = useParams()
   const entry = getDevlogWeekByNumber(week)
+  const carry = useMemo(() => {
+    const n = Number(week)
+    if (!Number.isFinite(n)) return null
+    return getCarryoverTasksForWeek(n, getDevlogWeeks())
+  }, [week])
 
   const { tocItems, executiveBody, mainBody, nextStepsBody } = useMemo(() => {
     const body = entry?.body?.trim() ? entry.body : ''
@@ -49,7 +58,11 @@ export default function DevlogWeekPage() {
     const { main: afterExec, executiveSummary } = splitExecutiveSummary(body)
     const { main, nextSteps } = splitNextStepsBlock(afterExec)
     return {
-      tocItems: extractTocFromMarkdown(body),
+      tocItems: buildDevlogWeekToc({
+        executiveBody: executiveSummary,
+        mainBody: main,
+        nextStepsBody: nextSteps,
+      }),
       executiveBody: executiveSummary,
       mainBody: main,
       nextStepsBody: nextSteps,
@@ -88,12 +101,7 @@ export default function DevlogWeekPage() {
   const hasExecutive = Boolean(executiveBody?.trim())
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="border-b border-slate-200/70 bg-slate-50/80 px-6 py-24 dark:border-slate-800 dark:bg-slate-900/40 sm:px-10"
-    >
+    <div className="border-b border-slate-200/70 bg-slate-50/80 px-6 py-24 dark:border-slate-800 dark:bg-slate-900/40 sm:px-10">
       <article className="mx-auto max-w-[72rem]">
         <Link
           to="/"
@@ -123,6 +131,16 @@ export default function DevlogWeekPage() {
           {entry.summary}
         </p>
 
+        {carry ? (
+          <div className="mt-6 max-w-[52rem]">
+            <DevlogCarryoverChecklist
+              fromWeek={carry.fromWeek}
+              currentWeek={carry.currentWeek}
+              tasks={carry.tasks}
+            />
+          </div>
+        ) : null}
+
         {entry.credits?.length ? (
           <div className="mt-6 max-w-[52rem]">
             <DevlogCredits credits={entry.credits} />
@@ -143,14 +161,20 @@ export default function DevlogWeekPage() {
                   className="scroll-mt-28 rounded-2xl border-2 border-sky-400/50 bg-gradient-to-br from-sky-50/95 via-white to-indigo-50/80 p-6 shadow-glass-lg dark:border-sky-500/35 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 sm:p-8"
                 >
                   <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-800 dark:text-sky-300">
-                    Executive summary
+                    Opening · Executive summary
                   </p>
                   <DevlogMarkdownBody markdown={executiveBody} />
                 </section>
               ) : null}
 
               {hasMain ? (
-                <div className="glass-panel rounded-2xl p-6 sm:p-10">
+                <div
+                  className="glass-panel rounded-2xl p-6 sm:p-10"
+                  id="week-main-body"
+                >
+                  <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft dark:text-slate-400">
+                    Main notes
+                  </p>
                   <DevlogMarkdownBody markdown={mainBody} />
                 </div>
               ) : null}
@@ -162,7 +186,7 @@ export default function DevlogWeekPage() {
                   className="scroll-mt-28 rounded-2xl border-2 border-teal-400/55 bg-gradient-to-br from-teal-50/95 via-white to-sky-50/90 p-6 shadow-glass-lg dark:border-teal-500/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 sm:p-8"
                 >
                   <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-700 dark:text-accent-mint">
-                    Priority · Next steps
+                    Closing · Next steps
                   </p>
                   <DevlogMarkdownBody
                     markdown={nextStepsBody}
@@ -223,6 +247,6 @@ export default function DevlogWeekPage() {
           </div>
         )}
       </article>
-    </motion.div>
+    </div>
   )
 }
