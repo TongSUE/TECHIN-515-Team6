@@ -1,0 +1,5 @@
+# Vite / Node (devlog SPA)
+web-devlog/node_modules/
+web-devlog/dist/
+web-devlog/.env.local
+web-devlog/.env.*.local

@@ -1,0 +1,23 @@
+{
+  "githubRepo": "https://github.com/YOUR_ORG/YOUR_REPO",
+  "weeks": [
+    {
+      "week": 2,
+      "date": "[Date Placeholder]",
+      "title": "[Devlog Title Placeholder]",
+      "status": "In Progress",
+      "summary": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Short card summary only; full Markdown lives in the optional body field or in a weekly .md file.",
+      "body": "## Section A\n\n[Full devlog Markdown placeholder.]\n\n| Col | Col |\n| --- | --- |\n| a | b |",
+      "credits": [
+        { "name": "Lucia", "initials": "L", "role": "[Role placeholder]" },
+        { "name": "Yutong", "initials": "Y", "role": "[Role placeholder]" }
+      ],
+      "images": [
+        {
+          "src": "images/devlog/placeholder.svg",
+          "caption": "[Image caption placeholder]"
+        }
+      ]
+    }
+  ]
+}

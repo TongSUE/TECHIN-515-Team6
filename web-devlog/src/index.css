@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --surface: 255 255 255;
+    --surface-muted: 248 250 252;
+    --ink: 15 23 42;
+    --ink-soft: 100 116 139;
+    --accent: 59 130 246;
+    --accent-mint: 45 212 191;
+    --glass-border: 255 255 255;
+    --blob-a: 147 197 253;
+    --blob-b: 153 246 228;
+    --blob-c: 196 181 253;
+  }
+
+  .dark {
+    --surface: 15 17 24;
+    --surface-muted: 23 27 38;
+    --ink: 241 245 249;
+    --ink-soft: 148 163 184;
+    --accent: 96 165 250;
+    --accent-mint: 94 234 212;
+    --glass-border: 30 41 59;
+    --blob-a: 37 99 235;
+    --blob-b: 13 148 136;
+    --blob-c: 109 40 217;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-svh bg-surface-muted text-ink antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  ::selection {
+    @apply bg-accent/20 text-ink;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply border border-white/40 bg-white/55 shadow-glass backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/50 dark:shadow-none;
+  }
+}
+
+/* Devlog Markdown: tighten top spacing after the glass panel edge */
+@layer components {
+  .markdown-doc > :first-child {
+    margin-top: 0;
+  }
+}
