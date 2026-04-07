@@ -77,26 +77,4 @@
   .markdown-doc > :first-child {
     margin-top: 0;
   }
-
-  /* KaTeX (remark-math + rehype-katex): sizing & dark mode */
-  .markdown-doc .katex {
-    font-size: 1.05em;
-  }
-
-  .markdown-doc .katex-display {
-    margin: 1rem 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 0.35rem 0;
-  }
-
-  .dark .markdown-doc .katex {
-    color: rgb(226 232 240);
-  }
-
-  .dark .markdown-doc .katex .mord,
-  .dark .markdown-doc .katex .mrel,
-  .dark .markdown-doc .katex .mop {
-    color: inherit;
-  }
 }

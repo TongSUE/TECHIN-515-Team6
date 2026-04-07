@@ -7,9 +7,7 @@ import {
 import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
 import remarkBreaks from 'remark-breaks'
-import rehypeKatex from 'rehype-katex'
 import rehypeRaw from 'rehype-raw'
 import rehypeSlug from 'rehype-slug'
 import UserFlowDiagramAuraSync from './UserFlowDiagramAuraSync.jsx'
@@ -410,28 +408,16 @@ export default function DevlogMarkdownBody({ markdown, variant = 'default' }) {
     [checklistStyle],
   )
 
-  const remarkPlugins = useMemo(() => {
-    const math = [
-      remarkMath,
-      { singleDollarTextMath: false },
-    ]
-    return checklistStyle
-      ? [remarkGfm, math]
-      : [remarkGfm, math, remarkBreaks]
-  }, [checklistStyle])
+  const remarkPlugins = useMemo(
+    () =>
+      checklistStyle
+        ? [remarkGfm]
+        : [remarkGfm, remarkBreaks],
+    [checklistStyle],
+  )
 
   const rehypePlugins = useMemo(
-    () => [
-      rehypeKatex,
-      {
-        errorColor: '#cc0000',
-        throwOnError: false,
-        strict: false,
-        trust: false,
-      },
-      rehypeRaw,
-      rehypeSlug,
-    ],
+    () => [rehypeRaw, rehypeSlug],
     [],
   )
 

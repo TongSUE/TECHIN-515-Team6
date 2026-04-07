@@ -134,8 +134,8 @@ What data are we collecting, and why?
 
 | Sensor | Data Feature (DSP) | Core Purpose | Importance |
 | :--- | :--- | :--- | :--- |
-| **BME680 (Gas)** | **VOC Gradient** (\(\Delta VOC/\Delta t\)) | **"The Nose":** Detect toilet odors and track scent decay. | **High** (Core trigger & Cooldown lock) |
-| **BME680 (Climate)** | **Humidity Gradient** (\(\Delta H/\Delta t\)) | **"The Skin":** Detect shower steam and rapid drafts. | **High** (Shower trigger & Anomaly defense) |
+| **BME680 (Gas)** | **VOC Gradient** ($\Delta VOC/\Delta t$) | **"The Nose":** Detect toilet odors and track scent decay. | **High** (Core trigger & Cooldown lock) |
+| **BME680 (Climate)** | **Humidity Gradient** ($\Delta H/\Delta t$) | **"The Skin":** Detect shower steam and rapid drafts. | **High** (Shower trigger & Anomaly defense) |
 | **I2S Mic** | **Frequency Energy** (FFT) | **"The Ear":** Distinguish water flow vs. hair dryers. | **Medium** (False-alarm prevention) |
 
 ### 2. Core Target Scenarios
@@ -144,10 +144,10 @@ How the system combines data to understand user context:
 
 * **🚽 Odor (Target):**
     * *Trigger:* Sharp VOC spike + Stable Humidity + Flush sounds.
-    * *Action:* Trigger Actuation → Enter Cooldown.
+    * *Action:* Trigger Actuation $\rightarrow$ Enter Cooldown.
 * **🚿 Shower (Target):**
     * *Trigger:* Steep positive Humidity slope + Water flow sounds.
-    * *Action:* Trigger Actuation (post-shower) → Enter Cooldown.
+    * *Action:* Trigger Actuation (post-shower) $\rightarrow$ Enter Cooldown.
 * **💄 Grooming (False Alarm):**
     * *Trigger:* Sudden VOC spike (hairspray) + Hair dryer / spray sounds.
     * *Action:* **Ignore.** Suppress actuation to prevent scent overload.
