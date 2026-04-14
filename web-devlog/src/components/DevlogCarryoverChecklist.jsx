@@ -1,8 +1,16 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import { CheckCircle2, Circle, ListTodo } from 'lucide-react'
+import { CheckCircle2, Circle, MinusCircle, ListTodo } from 'lucide-react'
 
 /**
- * Shows the previous week's planned_next tasks, merged with this week's prior_week_progress.
+ * Shows the previous week's planned_next tasks merged with this week's prior_week_progress.
+ *
+ * `t.done` can be:
+ *   true      → completed  (CheckCircle2, strikethrough)
+ *   'partial' → in-progress (MinusCircle, amber tint)
+ *   false     → not started (Circle, normal)
+ *
+ * Clicking a task label scrolls smoothly to the body section with a matching `id`
+ * (the week-N.md body should include `<span id="<task-id>"></span>` before each section).
  */
 export default function DevlogCarryoverChecklist({
   fromWeek,
@@ -13,7 +21,13 @@ export default function DevlogCarryoverChecklist({
   const reduce = useReducedMotion()
   if (!fromWeek || !tasks?.length) return null
 
-  const doneCount = tasks.filter((t) => t.done).length
+  const doneCount = tasks.filter((t) => t.done === true).length
+  const partialCount = tasks.filter((t) => t.done === 'partial').length
+
+  function scrollToSection(id) {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <motion.div
@@ -36,55 +50,79 @@ export default function DevlogCarryoverChecklist({
             From Week {fromWeek} plan
           </p>
           <p className="mt-1 text-xs text-ink-soft dark:text-slate-400">
-            Tasks we committed to in Week {fromWeek}. Completion flags are read
-            from Week {currentWeek ?? '…'} front matter (
-            <code className="rounded bg-violet-100/80 px-1 py-px text-[10px] dark:bg-violet-900/50">
-              prior_week_progress
-            </code>
-            ).
+            Tasks we committed to in Week {fromWeek}. Click a task to jump to
+            its section below.
           </p>
           <ul className="mt-3 space-y-2">
-            {tasks.map((t, i) => (
-              <motion.li
-                key={t.id}
-                initial={reduce ? false : { opacity: 0, x: -6 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.05, duration: 0.3 }}
-                className="flex gap-2.5 rounded-lg border border-violet-100/60 bg-white/70 px-3 py-2 text-sm dark:border-violet-500/15 dark:bg-slate-900/40"
-              >
-                <span className="mt-0.5 shrink-0 text-violet-600 dark:text-violet-300">
-                  {t.done ? (
-                    <CheckCircle2
-                      className="h-4 w-4"
-                      strokeWidth={2.25}
-                      aria-hidden
-                    />
-                  ) : (
-                    <Circle
-                      className="h-4 w-4 opacity-55"
-                      strokeWidth={2}
-                      aria-hidden
-                    />
-                  )}
-                </span>
-                <span className="min-w-0">
+            {tasks.map((t, i) => {
+              const isDone = t.done === true
+              const isPartial = t.done === 'partial'
+
+              return (
+                <motion.li
+                  key={t.id}
+                  initial={reduce ? false : { opacity: 0, x: -6 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05, duration: 0.3 }}
+                  className={`flex gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    isDone
+                      ? 'border-teal-200/70 bg-teal-50/60 dark:border-teal-500/20 dark:bg-teal-950/20'
+                      : isPartial
+                        ? 'border-amber-200/80 bg-amber-50/60 dark:border-amber-500/25 dark:bg-amber-950/20'
+                        : 'border-violet-100/60 bg-white/70 dark:border-violet-500/15 dark:bg-slate-900/40'
+                  }`}
+                >
                   <span
-                    className={`font-medium text-ink dark:text-slate-100 ${t.done ? 'line-through opacity-70' : ''}`}
+                    className={`mt-0.5 shrink-0 ${
+                      isDone
+                        ? 'text-teal-600 dark:text-teal-400'
+                        : isPartial
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-violet-400 dark:text-violet-400'
+                    }`}
                   >
-                    {t.label}
+                    {isDone ? (
+                      <CheckCircle2 className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    ) : isPartial ? (
+                      <MinusCircle className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    ) : (
+                      <Circle className="h-4 w-4 opacity-55" strokeWidth={2} aria-hidden />
+                    )}
                   </span>
-                  {t.description ? (
-                    <span className="mt-0.5 block text-xs leading-snug text-ink-soft dark:text-slate-400">
-                      {t.description}
-                    </span>
-                  ) : null}
-                </span>
-              </motion.li>
-            ))}
+                  <span className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection(t.id)}
+                      className={`cursor-pointer text-left font-medium underline-offset-2 transition hover:underline ${
+                        isDone
+                          ? 'text-teal-800 line-through opacity-70 dark:text-teal-200'
+                          : isPartial
+                            ? 'text-amber-800 dark:text-amber-200'
+                            : 'text-ink dark:text-slate-100'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                    {isPartial && (
+                      <span className="ml-2 inline-flex rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
+                        partial
+                      </span>
+                    )}
+                    {t.description ? (
+                      <span className="mt-0.5 block text-xs leading-snug text-ink-soft dark:text-slate-400">
+                        {t.description}
+                      </span>
+                    ) : null}
+                  </span>
+                </motion.li>
+              )
+            })}
           </ul>
           <p className="mt-3 text-[11px] font-medium text-violet-700/80 dark:text-violet-300/70">
-            {doneCount}/{tasks.length} done · Week {currentWeek ?? '?'} YAML
+            {doneCount} done
+            {partialCount > 0 ? ` · ${partialCount} partial` : ''}
+            {' '}/ {tasks.length} total · Week {currentWeek ?? '?'}
           </p>
         </div>
       </div>

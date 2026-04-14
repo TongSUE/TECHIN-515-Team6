@@ -128,7 +128,7 @@ stateDiagram-v2
 
 We treat environmental classification as a **Sensor Fusion + DSP** problem. Absolute sensor values are meaningless due to different room baselines. We focus on temporal trends and multi-modal context.
 
-### 1. Sensor Data Mapping
+### Sensor Data Mapping
 
 What data are we collecting, and why?
 
@@ -138,7 +138,7 @@ What data are we collecting, and why?
 | **BME680 (Climate)** | **Humidity Gradient** ($\Delta H/\Delta t$) | **"The Skin":** Detect shower steam and rapid drafts. | **High** (Shower trigger & Anomaly defense) |
 | **I2S Mic** | **Frequency Energy** (FFT) | **"The Ear":** Distinguish water flow vs. hair dryers. | **Medium** (False-alarm prevention) |
 
-### 2. Core Target Scenarios
+### Core Target Scenarios
 
 How the system combines data to understand user context:
 
@@ -155,7 +155,7 @@ How the system combines data to understand user context:
     * *Trigger:* Unnatural, steep negative Temp/Humidity drop.
     * *Action:* **Pause ML.** Recalibrate baseline for 60 seconds.
 
-### 3. Edge ML Logic (How it thinks)
+### Edge ML Logic
 
 * **Trend Over Value:** Compute data slopes (derivatives), not raw numbers.
 * **30-Sec Sliding Window:** ML model analyzes a 30-second data buffer, not instantaneous snapshots.
@@ -176,7 +176,7 @@ Due to hardware shipping delays, physical testing is blocked for next week. We w
 
 | Todo | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **Schematic & PCB** | Draw the overall system schematic and begin initial PCB layout routing. |
-| <input type="checkbox" /> | **CAD Modeling** | Design the 3D-printable enclosure based on our component dimensions. |
-| <input type="checkbox" /> | **Firmware Framework** | Scaffold the `ESP32 C++` codebase (sensor loops, WiFi setup) so we can flash immediately when parts arrive. |
-| <input type="checkbox" /> | **ML Deliverable** | Finalize the `Data + ML Pipeline` presentation slide. |
+| <input type="checkbox" checked /> | **Schematic & PCB** | Draw the overall system schematic and begin initial PCB layout routing. |
+| <input type="checkbox" checked /> | **CAD Modeling** | Design the 3D-printable enclosure based on our component dimensions. |
+| <input type="checkbox" checked /> | **Firmware Framework** | Scaffold the ESP32 C++ codebase (sensor loops, WiFi setup) so we can flash immediately when parts arrive. |
+| <input type="checkbox" /> | **ML Deliverable** | Finalize the Data + ML Pipeline presentation slide. |

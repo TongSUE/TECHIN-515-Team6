@@ -1,9 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import DevlogCarryoverChecklist from '../components/DevlogCarryoverChecklist.jsx'
 import DevlogCredits from '../components/DevlogCredits.jsx'
 import DevlogMarkdownBody from '../components/DevlogMarkdownBody.jsx'
 import DevlogToc from '../components/DevlogToc.jsx'
+import MobileTocDrawer from '../components/MobileTocDrawer.jsx'
+import ReadingProgress from '../components/ReadingProgress.jsx'
 import {
   getCarryoverTasksForWeek,
   getDevlogWeekByNumber,
@@ -13,6 +15,7 @@ import {
   buildDevlogWeekToc,
   splitExecutiveSummary,
   splitNextStepsBlock,
+  splitNotesPanelBlock,
 } from '../utils/devlogDocUtils.js'
 import { resolveAssetUrl } from '../utils/resolveAssetUrl.js'
 
@@ -45,25 +48,38 @@ export default function DevlogWeekPage() {
     return getCarryoverTasksForWeek(n, getDevlogWeeks())
   }, [week])
 
-  const { tocItems, executiveBody, mainBody, nextStepsBody } = useMemo(() => {
+  const { prevWeek, nextWeek } = useMemo(() => {
+    const all = getDevlogWeeks()
+    const n = entry?.week
+    return {
+      prevWeek: all.find((w) => w.week === n - 1) ?? null,
+      nextWeek: all.find((w) => w.week === n + 1) ?? null,
+    }
+  }, [entry])
+
+  const { tocItems, executiveBody, notesBody, mainBody, nextStepsBody } = useMemo(() => {
     const body = entry?.body?.trim() ? entry.body : ''
     if (!body) {
       return {
         tocItems: [],
         executiveBody: null,
+        notesBody: null,
         mainBody: '',
         nextStepsBody: null,
       }
     }
     const { main: afterExec, executiveSummary } = splitExecutiveSummary(body)
-    const { main, nextSteps } = splitNextStepsBlock(afterExec)
+    const { main: afterNotes, notesPanel } = splitNotesPanelBlock(afterExec)
+    const { main, nextSteps } = splitNextStepsBlock(afterNotes)
     return {
       tocItems: buildDevlogWeekToc({
         executiveBody: executiveSummary,
+        notesBody: notesPanel,
         mainBody: main,
         nextStepsBody: nextSteps,
       }),
       executiveBody: executiveSummary,
+      notesBody: notesPanel,
       mainBody: main,
       nextStepsBody: nextSteps,
     }
@@ -93,15 +109,19 @@ export default function DevlogWeekPage() {
     )
   }
 
+  const [tocDrawerOpen, setTocDrawerOpen] = useState(false)
+
   const status = entry.status
   const statusClass =
     status && status in statusStyles ? statusStyles[status] : defaultStatusClass
   const hasBody = typeof entry.body === 'string' && entry.body.trim().length > 0
   const hasMain = mainBody.trim().length > 0
   const hasExecutive = Boolean(executiveBody?.trim())
+  const hasNotes = Boolean(notesBody?.trim())
 
   return (
     <div className="border-b border-slate-200/70 bg-slate-50/80 px-6 py-24 dark:border-slate-800 dark:bg-slate-900/40 sm:px-10">
+      <ReadingProgress visible={hasBody} />
       <article className="mx-auto max-w-[72rem]">
         <Link
           to="/"
@@ -154,6 +174,19 @@ export default function DevlogWeekPage() {
             </aside>
 
             <div className="min-w-0 space-y-8">
+              {hasNotes ? (
+                <section
+                  id="notes-panel"
+                  aria-label="Pre-Flight Q&A"
+                  className="scroll-mt-28 rounded-2xl border-2 border-amber-400/55 bg-gradient-to-br from-amber-50/95 via-white to-yellow-50/90 p-6 shadow-glass-lg dark:border-amber-500/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 sm:p-8"
+                >
+                  <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-300">
+                    Notes · Pre-Flight Q&amp;A
+                  </p>
+                  <DevlogMarkdownBody markdown={notesBody} />
+                </section>
+              ) : null}
+
               {hasExecutive ? (
                 <section
                   id="executive-summary-panel"
@@ -246,7 +279,65 @@ export default function DevlogWeekPage() {
             </p>
           </div>
         )}
+        {(prevWeek || nextWeek) && (
+          <nav
+            aria-label="Week navigation"
+            className="mt-14 flex items-stretch justify-between gap-4"
+          >
+            {prevWeek ? (
+              <Link
+                to={`/devlog/${prevWeek.week}`}
+                className="glass-panel flex min-w-0 flex-1 flex-col gap-1 rounded-2xl px-5 py-4 transition hover:border-accent/40 dark:hover:border-accent-mint/40"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft dark:text-slate-400">
+                  ← Previous
+                </span>
+                <span className="truncate text-sm font-medium text-ink dark:text-slate-100">
+                  Week {prevWeek.week} · {prevWeek.title}
+                </span>
+              </Link>
+            ) : (
+              <div className="flex-1" />
+            )}
+            {nextWeek ? (
+              <Link
+                to={`/devlog/${nextWeek.week}`}
+                className="glass-panel flex min-w-0 flex-1 flex-col items-end gap-1 rounded-2xl px-5 py-4 text-right transition hover:border-accent/40 dark:hover:border-accent-mint/40"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft dark:text-slate-400">
+                  Next →
+                </span>
+                <span className="truncate text-sm font-medium text-ink dark:text-slate-100">
+                  Week {nextWeek.week} · {nextWeek.title}
+                </span>
+              </Link>
+            ) : (
+              <div className="flex-1" />
+            )}
+          </nav>
+        )}
       </article>
+
+      {/* Mobile TOC floating button — hidden on lg+ where sidebar is visible */}
+      {hasBody && tocItems.length > 0 && (
+        <button
+          onClick={() => setTocDrawerOpen(true)}
+          aria-label="Open table of contents"
+          className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 lg:hidden"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="15" y2="12" />
+            <line x1="3" y1="18" x2="18" y2="18" />
+          </svg>
+        </button>
+      )}
+
+      <MobileTocDrawer
+        items={tocItems}
+        open={tocDrawerOpen}
+        onClose={() => setTocDrawerOpen(false)}
+      />
     </div>
   )
 }

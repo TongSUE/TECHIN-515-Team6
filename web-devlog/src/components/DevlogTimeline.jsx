@@ -1,9 +1,12 @@
-import { motion, useReducedMotion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { BookOpen } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import DevlogCarryoverChecklist from './DevlogCarryoverChecklist.jsx'
 import DevlogCredits from './DevlogCredits.jsx'
 import { getCarryoverTasksForWeek } from '../utils/loadDevlog.js'
+
+const FILTERS = ['All', 'In Progress', 'Completed']
 
 const statusStyles = {
   Blocking:
@@ -21,6 +24,10 @@ const defaultStatusClass =
 
 export default function DevlogTimeline({ weeks }) {
   const reduce = useReducedMotion()
+  const [filter, setFilter] = useState('All')
+
+  const filteredWeeks =
+    filter === 'All' ? weeks : weeks.filter((w) => w.status === filter)
 
   return (
     <section
@@ -38,20 +45,32 @@ export default function DevlogTimeline({ weeks }) {
           <span>Build log, week by week</span>
         </h2>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
-          Each card is a quick snapshot; open a week for the full write-up (BOM
-          tables, Mermaid diagrams, ML notes). Source files live in{' '}
-          <code className="rounded-md bg-white/90 px-1.5 py-0.5 text-sm text-ink shadow-sm dark:bg-slate-800 dark:text-slate-200">
-            src/content/devlog/*.md
-          </code>
-          , with{' '}
-          <code className="rounded-md bg-white/90 px-1.5 py-0.5 text-sm text-ink shadow-sm dark:bg-slate-800 dark:text-slate-200">
-            src/data/devlog.json
-          </code>{' '}
-          as a fallback scaffold.
+          A running record of how AuraSync gets built — hardware decisions,
+          firmware milestones, CAD iterations, and ML experiments, one week at a
+          time. Each card is a quick summary; click in for schematics, code
+          walkthroughs, and the full design rationale.
         </p>
 
-        <ol className="relative mt-14 space-y-10 border-l border-slate-200 pl-8 dark:border-slate-700">
-          {weeks.map((w, index) => {
+        {/* Filter pills */}
+        <div className="mt-10 flex flex-wrap gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={
+                filter === f
+                  ? 'rounded-full px-4 py-1.5 text-sm font-medium shadow-sm transition bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                  : 'rounded-full border border-slate-200/80 bg-white/80 px-4 py-1.5 text-sm font-medium text-ink-soft transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-700'
+              }
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        <ol className="relative mt-10 space-y-10 border-l border-slate-200 pl-8 dark:border-slate-700">
+          <AnimatePresence initial={false}>
+          {filteredWeeks.map((w, index) => {
             const status = w.status
             const statusClass =
               status && status in statusStyles
@@ -63,9 +82,9 @@ export default function DevlogTimeline({ weeks }) {
               <motion.li
                 key={w.week}
                 initial={reduce ? false : { opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ duration: 0.45, delay: index * 0.04 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? {} : { opacity: 0, y: -10 }}
+                transition={{ duration: 0.32, delay: index * 0.04 }}
                 className="group/tl relative"
               >
                 <span
@@ -137,6 +156,7 @@ export default function DevlogTimeline({ weeks }) {
               </motion.li>
             )
           })}
+          </AnimatePresence>
         </ol>
       </div>
     </section>

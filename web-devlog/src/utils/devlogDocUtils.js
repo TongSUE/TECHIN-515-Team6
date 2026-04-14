@@ -69,17 +69,58 @@ export function splitExecutiveSummary(markdown) {
  * title contains "next step(s)" (case-insensitive).
  */
 /**
- * TOC for the week page: bookend anchors (Opening / Main / Closing) plus ##/### from each region.
+ * Extracts `## Pre-Flight Q&A` (or any h2 matching /pre-?flight|pre.?flight.*q.?a/i) section.
+ * Returns the section and removes it from main body.
+ */
+export function splitNotesPanelBlock(markdown) {
+  if (!markdown || typeof markdown !== 'string') {
+    return { main: markdown?.trim() ?? '', notesPanel: null }
+  }
+  const lines = markdown.split(/\r?\n/)
+  let start = -1
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim()
+    if (!/^##\s+/.test(t)) continue
+    if (/pre[-\s]?flight/i.test(t)) { start = i; break }
+  }
+  if (start === -1) {
+    return { main: markdown.trim(), notesPanel: null }
+  }
+  let end = lines.length
+  for (let j = start + 1; j < lines.length; j++) {
+    if (/^##\s+/.test(lines[j].trim())) { end = j; break }
+  }
+  const notesPanel = lines.slice(start, end).join('\n').trim()
+  const main = [...lines.slice(0, start), ...lines.slice(end)].join('\n').trim()
+  return { main, notesPanel }
+}
+
+/**
+ * TOC for the week page: bookend anchors (Opening / Notes / Main / Closing) plus ##/### from each region.
  */
 export function buildDevlogWeekToc({
   executiveBody = '',
+  notesBody = '',
   mainBody = '',
   nextStepsBody = '',
 } = {}) {
   const items = []
   const exec = typeof executiveBody === 'string' && executiveBody.trim()
+  const notes = typeof notesBody === 'string' && notesBody.trim()
   const main = typeof mainBody === 'string' && mainBody.trim()
   const next = typeof nextStepsBody === 'string' && nextStepsBody.trim()
+
+  if (notes) {
+    items.push({
+      level: 2,
+      text: 'Notes · Pre-Flight Q&A',
+      id: 'notes-panel',
+    })
+    for (const t of extractTocFromMarkdown(notes)) {
+      if (/pre-?flight/i.test(t.text)) continue // skip the section heading itself
+      items.push(t)
+    }
+  }
 
   if (exec) {
     items.push({

@@ -96,9 +96,14 @@ function normalizePriorProgress(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const out = {}
   for (const [k, v] of Object.entries(raw)) {
-    out[String(k)] = Boolean(v)
+    // Support three states: true (done), false (not done), 'partial' (in-progress)
+    if (v === 'partial' || v === 'in-progress') {
+      out[String(k)] = 'partial'
+    } else {
+      out[String(k)] = Boolean(v)
+    }
   }
-  return {}
+  return out
 }
 
 function normalizeCredits(raw) {
@@ -216,7 +221,8 @@ export function getCarryoverTasksForWeek(weekNum, allWeeks) {
       id: t.id,
       label: t.label,
       description: t.description,
-      done: Boolean(progress[t.id]),
+      // done: true = completed, 'partial' = in-progress, false = not started
+      done: progress[t.id] ?? false,
     })),
   }
 }

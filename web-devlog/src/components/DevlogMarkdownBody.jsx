@@ -3,14 +3,19 @@ import {
   cloneElement,
   isValidElement,
   useMemo,
+  useState,
 } from 'react'
 import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import remarkMath from 'remark-math'
 import rehypeRaw from 'rehype-raw'
 import rehypeSlug from 'rehype-slug'
+import rehypeKatex from 'rehype-katex'
+import rehypeHighlight from 'rehype-highlight'
 import UserFlowDiagramAuraSync from './UserFlowDiagramAuraSync.jsx'
+import ImageLightbox from './ImageLightbox.jsx'
 import { resolveAssetUrl } from '../utils/resolveAssetUrl.js'
 
 const linkClass =
@@ -64,7 +69,7 @@ function extractTaskCheckbox(children) {
   return { input: null, rest: parts }
 }
 
-function createMarkdownComponents({ checklistStyle = false } = {}) {
+function createMarkdownComponents({ checklistStyle = false, onImageClick } = {}) {
   return {
     h1({ children, id }) {
       return (
@@ -257,17 +262,27 @@ function createMarkdownComponents({ checklistStyle = false } = {}) {
           className="max-h-[min(70vh,520px)] w-auto max-w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
         />
       )
+      const clickable = onImageClick ? (
+        <button
+          type="button"
+          onClick={() => onImageClick({ src: resolved, alt: alt ?? '', title })}
+          className="cursor-zoom-in focus:outline-none"
+          aria-label="Enlarge image"
+        >
+          {imgEl}
+        </button>
+      ) : imgEl
       if (title) {
         return (
           <figure className="my-8">
-            {imgEl}
+            {clickable}
             <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
               {title}
             </figcaption>
           </figure>
         )
       }
-      return <div className="my-8">{imgEl}</div>
+      return <div className="my-8">{clickable}</div>
     },
     code({ inline, className, children, ...props }) {
       const isFenced =
@@ -403,39 +418,50 @@ function createMarkdownComponents({ checklistStyle = false } = {}) {
  */
 export default function DevlogMarkdownBody({ markdown, variant = 'default' }) {
   const checklistStyle = variant === 'nextSteps'
+  const [lightbox, setLightbox] = useState(null)
   const components = useMemo(
-    () => createMarkdownComponents({ checklistStyle }),
+    () => createMarkdownComponents({ checklistStyle, onImageClick: setLightbox }),
     [checklistStyle],
   )
 
   const remarkPlugins = useMemo(
     () =>
       checklistStyle
-        ? [remarkGfm]
-        : [remarkGfm, remarkBreaks],
+        ? [remarkGfm, remarkMath]
+        : [remarkGfm, remarkMath, remarkBreaks],
     [checklistStyle],
   )
 
   const rehypePlugins = useMemo(
-    () => [rehypeRaw, rehypeSlug],
+    () => [rehypeRaw, rehypeHighlight, rehypeKatex, rehypeSlug],
     [],
   )
 
   return (
-    <div
-      className={
-        checklistStyle
-          ? 'markdown-doc devlog-md-next-steps max-w-none'
-          : 'markdown-doc max-w-none'
-      }
-    >
-      <ReactMarkdown
-        remarkPlugins={remarkPlugins}
-        rehypePlugins={rehypePlugins}
-        components={components}
+    <>
+      <div
+        className={
+          checklistStyle
+            ? 'markdown-doc devlog-md-next-steps max-w-none'
+            : 'markdown-doc max-w-none'
+        }
       >
-        {markdown}
-      </ReactMarkdown>
-    </div>
+        <ReactMarkdown
+          remarkPlugins={remarkPlugins}
+          rehypePlugins={rehypePlugins}
+          components={components}
+        >
+          {markdown}
+        </ReactMarkdown>
+      </div>
+      {lightbox && (
+        <ImageLightbox
+          src={lightbox.src}
+          alt={lightbox.alt}
+          title={lightbox.title}
+          onClose={() => setLightbox(null)}
+        />
+      )}
+    </>
   )
 }
