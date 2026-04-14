@@ -79,7 +79,7 @@ This depends on the sensor. Since our hardware has not yet arrived, these are ou
 | Raw data per second | **4 values** |
 | 30-second ML window | ~30 sample-sets → ~60 derived gradient features (Δhumidity/Δt, ΔVOC/Δt) |
 
-The 1 Hz limit comes from the gas-heater cycle: our firmware heats the sensor to 320 °C for 150 ms before each gas reading.
+The 1 Hz rate is set in firmware (`readBME680()` millis-throttled at 1000 ms) and accommodates the BME680's automatic gas-heater cycle. The chip contains a microscopic (~0.3 mm²) on-chip resistive heater that brings the metal-oxide VOC sensing surface to ~320 °C for ~150 ms — this is handled entirely by the Bosch BSEC / Arduino driver, not hand-written heater code. The heater draws only ~16 mW at a 15 % duty cycle, so it poses no thermal risk to the enclosure. For a bathroom device, the VOC channel is actively useful: a VOC spike combined with a rising humidity slope is a strong "shower started" signal. One firmware note: the heater can cause a minor self-heating offset on the temperature channel; Bosch recommends reading temperature and humidity *before* triggering the gas measurement, which our non-blocking loop already handles.
 
 **INMP441 — I2S microphone**
 
@@ -87,10 +87,11 @@ The 1 Hz limit comes from the gas-heater cycle: our firmware heats the sensor to
 |-----------|-------|
 | Sample rate | **16,000 Hz** (16 kHz) |
 | Bit depth (DMA buffer) | 32-bit frame (24-bit valid) |
-| Raw data per second | ~64 KB |
-| After FFT extraction | A 30-second window of 480,000 samples → compressed to O(hundreds) of frequency-domain coefficients for the ML model |
+| Raw data per second | ~64 KB — processed as ~32 ms DMA frames; raw PCM **not** stored in bulk |
+| Voice-command mode | ~1 s keyword window → 16,000 samples ≈ **64 KB** raw PCM buffer → Edge Impulse keyword-spotting model |
+| Environment mode | ~30 s of per-frame FFT feature vectors (raw audio discarded each frame) → shower/ambient classifier; **no large PCM buffer** |
 
-> Both figures are design targets from our firmware framework. The BME680 gas-heater duty cycle and INMP441 DMA buffer dynamics will be validated on real hardware once sensors arrive.
+> Both figures are design targets from our firmware framework and will be validated on real hardware once sensors arrive.
 
 ---
 
