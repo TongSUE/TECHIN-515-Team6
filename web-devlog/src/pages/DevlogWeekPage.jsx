@@ -57,31 +57,35 @@ export default function DevlogWeekPage() {
     }
   }, [entry])
 
-  const { tocItems, executiveBody, notesBody, mainBody, nextStepsBody } = useMemo(() => {
+  const { tocItems, executiveBody, notesBody, notesPanelTitle, mainBody, nextStepsBody } = useMemo(() => {
     const body = entry?.body?.trim() ? entry.body : ''
     if (!body) {
       return {
         tocItems: [],
         executiveBody: null,
         notesBody: null,
+        notesPanelTitle: null,
         mainBody: '',
         nextStepsBody: null,
       }
     }
     const { main: afterExec, executiveSummary } = splitExecutiveSummary(body)
-    const { main: afterNotes, notesPanel } = splitNotesPanelBlock(afterExec)
+    const { main: afterNotes, notesPanel, notesPanelTitle: panelTitle } = splitNotesPanelBlock(afterExec)
     const { main, nextSteps } = splitNextStepsBlock(afterNotes)
+    const showNext = entry?.showNextSteps !== false
     return {
       tocItems: buildDevlogWeekToc({
         executiveBody: executiveSummary,
         notesBody: notesPanel,
+        notesPanelTitle: panelTitle,
         mainBody: main,
-        nextStepsBody: nextSteps,
+        nextStepsBody: showNext ? nextSteps : null,
       }),
       executiveBody: executiveSummary,
       notesBody: notesPanel,
+      notesPanelTitle: panelTitle,
       mainBody: main,
-      nextStepsBody: nextSteps,
+      nextStepsBody: showNext ? nextSteps : null,
     }
   }, [entry])
 
@@ -118,6 +122,7 @@ export default function DevlogWeekPage() {
   const hasMain = mainBody.trim().length > 0
   const hasExecutive = Boolean(executiveBody?.trim())
   const hasNotes = Boolean(notesBody?.trim())
+  const notesPanelLabel = notesPanelTitle ?? 'Pre-Flight Q\u0026A'
 
   return (
     <div className="border-b border-slate-200/70 bg-slate-50/80 px-6 py-24 dark:border-slate-800 dark:bg-slate-900/40 sm:px-10">
@@ -181,7 +186,7 @@ export default function DevlogWeekPage() {
                   className="scroll-mt-28 rounded-2xl border-2 border-amber-400/55 bg-gradient-to-br from-amber-50/95 via-white to-yellow-50/90 p-6 shadow-glass-lg dark:border-amber-500/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 sm:p-8"
                 >
                   <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-300">
-                    Notes · Pre-Flight Q&amp;A
+                    Notes · {notesPanelLabel}
                   </p>
                   <DevlogMarkdownBody markdown={notesBody} />
                 </section>

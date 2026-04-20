@@ -2,6 +2,17 @@
   "githubRepo": "https://github.com/TongSUE/TECHIN-515-Team6",
   "weeks": [
     {
+      "week": 3,
+      "date": "April 14 - April 20, 2026",
+      "title": "Voice Recognition, PIR Sensor & Milestone 1 Prep",
+      "status": "In Progress",
+      "summary": "Stub — see week-03.md for full content.",
+      "credits": [
+        { "name": "Lucia", "initials": "L", "tags": ["PIR Sensor", "Milestone Slides"] },
+        { "name": "Yutong", "initials": "Y", "tags": ["Voice Recognition", "Streamlit", "Devlog"] }
+      ]
+    },
+    {
       "week": 2,
       "date": "TBD",
       "title": "Week 2 (draft — replace via week-02.md or edit here)",

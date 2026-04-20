@@ -2,7 +2,7 @@
 week: 2
 date: "April 7 - April 13, 2026"
 title: "Schematic, Firmware & ML Data Strategy"
-status: "In Progress"
+status: "Complete"
 summary: >
   This week we built the engineering foundation: Yutong completed the KiCAD schematic with custom footprints and the ESP32-S3 firmware framework, while Lucia delivered an early 3D enclosure prototype and a full ML dataset survey.
 credits:
@@ -95,9 +95,8 @@ The 1 Hz rate is set in firmware (`readBME680()` millis-throttled at 1000 ms) an
 
 ---
 
-<a id="schematic-pcb" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
-
 ## 1. Schematic & PCB
+<a id="schematic-pcb" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 
 ### Overview
 
@@ -135,9 +134,8 @@ The complete AuraSync v1.0 system schematic was drawn in **KiCAD 9.0**. Because 
 
 ---
 
-<a id="cad-modeling" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
-
 ## 2. CAD Modeling & Prototyping
+<a id="cad-modeling" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 
 ### Early 3D prototype
 
@@ -158,9 +156,8 @@ Once PCB dimensions are locked and the atomizer module arrives (replacing the or
 
 ---
 
-<a id="firmware-framework" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
-
 ## 3. Firmware Framework
+<a id="firmware-framework" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 
 ### Architecture
 
@@ -207,9 +204,8 @@ The pump's 2-second active period is entirely non-blocking. `triggerPump()` sets
 
 ---
 
-<a id="ml-deliverable" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
-
 ## 4. ML Dataset Research
+<a id="ml-deliverable" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 
 ### Dataset survey
 
@@ -249,9 +245,9 @@ The formal pipeline presentation slide is being finalised and will be presented 
 
 Hardware is expected to arrive next week, so our focus shifts to bring-up and integration:
 
-| Todo | Task | Description |
+| Done | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **Refine CAD & Schematic** | Update the 3D enclosure with actual component dimensions; revise schematic to reflect the atomizer swap. |
-| <input type="checkbox" /> | **WiFi & Firebase** | Set up WiFi on the ESP32-S3 and establish a connection to Firebase for basic data transmission. |
-| <input type="checkbox" /> | **Microphone Bring-up** | With the microphone arriving, implement basic I2S audio input and verify signal capture. |
-| <input type="checkbox" /> | **Atomizer Test** | Test the ultrasonic atomizer module and verify integration with the ESP32-S3 via MOSFET driver. |
+| ✅ | **Refine CAD & Schematic** | Schematic updated for SPH0645 mic swap and PIR sensor addition. |
+| ⬜ | **WiFi & Firebase** | Deferred — Firebase integration planned for Week 4. |
+| ✅ | **Microphone Bring-up** | SPH0645 I2S mic operational; ESP-SR voice recognition working with wake-word. |
+| ✅ | **Atomizer Test** | HC-SR501 PIR sensor integrated; atomizer presence-triggered via 2N2222 transistor. |

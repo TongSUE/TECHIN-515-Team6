@@ -149,6 +149,7 @@ function weeksFromMarkdown() {
       credits: normalizeCredits(data.credits),
       plannedNext: normalizePlannedNext(data.planned_next),
       priorWeekProgress: normalizePriorProgress(data.prior_week_progress),
+      showNextSteps: data.show_next_steps !== false,
     })
   }
   return rows.sort((a, b) => b.week - a.week)

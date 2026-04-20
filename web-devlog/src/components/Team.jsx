@@ -17,11 +17,12 @@ const people = [
     name: 'Yutong Luo',
     initials: 'Y',
     github: 'https://github.com/TongSUE',
-    role: 'Firmware · Schematic · User Flow · Devlog',
-    bio: 'Leads the firmware architecture and embedded systems side — state machine design, I2S/BME680 bring-up, and the KiCAD schematic. Also shaped the end-to-end user flow and built this devlog site.',
+    role: 'Firmware · Voice · Schematic · Devlog',
+    bio: 'Leads firmware architecture and the devlog site. Built the ESP-SR wake-word pipeline, SPH0645 I2S microphone bring-up, KiCAD schematic updates, and this devlog site from scratch.',
     weeks: [
       { label: 'Week 1', items: ['User flow & state machine design', 'Devlog site (React + Vite)', 'System architecture'] },
       { label: 'Week 2', items: ['KiCAD schematic & custom footprints', 'ESP32-S3 firmware skeleton', 'Pre-Flight Q&A write-up'] },
+      { label: 'Week 3', items: ['SPH0645 I2S microphone bring-up', 'ESP-SR wake-word state machine', 'Real-time Streamlit dashboard', 'Schematic update (SPH0645 + PIR + 2N2222)', 'Devlog write-up'] },
     ],
   },
   {
@@ -29,10 +30,11 @@ const people = [
     initials: 'L',
     github: 'https://github.com/xtshen777',
     role: 'Hardware · CAD · ML Research · Procurement',
-    bio: 'Drives hardware decisions and physical integration — BOM curation, 3D enclosure prototyping, and ML dataset strategy. Keeps the team grounded in real component constraints.',
+    bio: 'Drives hardware integration and physical build. Integrated the HC-SR501 PIR sensor and 2N2222 atomizer switching circuit, manages 3D enclosure prototyping, and leads milestone presentations.',
     weeks: [
       { label: 'Week 1', items: ['Hardware selection & BOM', 'Component procurement', 'System architecture'] },
       { label: 'Week 2', items: ['3D enclosure prototype (CAD)', 'ML dataset survey & strategy', 'Data pipeline planning'] },
+      { label: 'Week 3', items: ['HC-SR501 PIR sensor integration', 'Ultrasonic atomizer circuit (2N2222 transistor)', 'Milestone 1 presentation slides'] },
     ],
   },
 ]

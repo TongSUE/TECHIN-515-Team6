@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function ImageLightbox({ src, alt, title, onClose }) {
@@ -10,7 +11,7 @@ export default function ImageLightbox({ src, alt, title, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         key="lightbox-overlay"
@@ -18,7 +19,7 @@ export default function ImageLightbox({ src, alt, title, onClose }) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm"
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
@@ -52,6 +53,7 @@ export default function ImageLightbox({ src, alt, title, onClose }) {
           </svg>
         </button>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }

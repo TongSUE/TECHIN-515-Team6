@@ -74,25 +74,26 @@ export function splitExecutiveSummary(markdown) {
  */
 export function splitNotesPanelBlock(markdown) {
   if (!markdown || typeof markdown !== 'string') {
-    return { main: markdown?.trim() ?? '', notesPanel: null }
+    return { main: markdown?.trim() ?? '', notesPanel: null, notesPanelTitle: null }
   }
   const lines = markdown.split(/\r?\n/)
   let start = -1
   for (let i = 0; i < lines.length; i++) {
     const t = lines[i].trim()
     if (!/^##\s+/.test(t)) continue
-    if (/pre[-\s]?flight/i.test(t)) { start = i; break }
+    if (/pre[-\s]?flight/i.test(t) || /^##\s+note\b/i.test(t)) { start = i; break }
   }
   if (start === -1) {
-    return { main: markdown.trim(), notesPanel: null }
+    return { main: markdown.trim(), notesPanel: null, notesPanelTitle: null }
   }
+  const notesPanelTitle = lines[start].replace(/^##\s+/, '').trim()
   let end = lines.length
   for (let j = start + 1; j < lines.length; j++) {
     if (/^##\s+/.test(lines[j].trim())) { end = j; break }
   }
   const notesPanel = lines.slice(start, end).join('\n').trim()
   const main = [...lines.slice(0, start), ...lines.slice(end)].join('\n').trim()
-  return { main, notesPanel }
+  return { main, notesPanel, notesPanelTitle }
 }
 
 /**
@@ -101,6 +102,7 @@ export function splitNotesPanelBlock(markdown) {
 export function buildDevlogWeekToc({
   executiveBody = '',
   notesBody = '',
+  notesPanelTitle = '',
   mainBody = '',
   nextStepsBody = '',
 } = {}) {
@@ -111,13 +113,17 @@ export function buildDevlogWeekToc({
   const next = typeof nextStepsBody === 'string' && nextStepsBody.trim()
 
   if (notes) {
+    const tocLabel = notesPanelTitle
+      ? `Notes · ${notesPanelTitle}`
+      : 'Notes · Pre-Flight Q&A'
     items.push({
       level: 2,
-      text: 'Notes · Pre-Flight Q&A',
+      text: tocLabel,
       id: 'notes-panel',
     })
     for (const t of extractTocFromMarkdown(notes)) {
       if (/pre-?flight/i.test(t.text)) continue // skip the section heading itself
+      if (/^note\b/i.test(t.text)) continue      // skip generic "Note — ..." heading
       items.push(t)
     }
   }

@@ -3,3 +3,23 @@ web-devlog/node_modules/
 web-devlog/dist/
 web-devlog/.env.local
 web-devlog/.env.*.local
+
+# Arduino build artifacts
+Code/**/*.elf
+Code/**/*.bin
+Code/**/*.map
+Code/**/build/
+Code/**/.pio/
+
+# KiCAD backups
+KiCAD/**/*-backups/
+KiCAD/**/*.bak
+
+# Python / Streamlit
+monitor/__pycache__/
+monitor/*.pyc
+monitor/.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db

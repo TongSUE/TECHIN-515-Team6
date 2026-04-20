@@ -15,6 +15,11 @@ import rehypeSlug from 'rehype-slug'
 import rehypeKatex from 'rehype-katex'
 import rehypeHighlight from 'rehype-highlight'
 import UserFlowDiagramAuraSync from './UserFlowDiagramAuraSync.jsx'
+import StateMachineDiagram from './StateMachineDiagram.jsx'
+import PIRActuationDiagram from './PIRActuationDiagram.jsx'
+import WakeWordStateMachineDiagram from './WakeWordStateMachineDiagram.jsx'
+import MentorCard from './MentorCard.jsx'
+import SpecialThanksCard from './SpecialThanksCard.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
 import { resolveAssetUrl } from '../utils/resolveAssetUrl.js'
 
@@ -392,6 +397,21 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
       const classes = raw.split(/\s+/).filter(Boolean)
       if (classes.includes('user-flow-diagram-embed')) {
         return <UserFlowDiagramAuraSync />
+      }
+      if (classes.includes('state-machine-diagram-embed')) {
+        return <StateMachineDiagram />
+      }
+      if (classes.includes('pir-actuation-diagram-embed')) {
+        return <PIRActuationDiagram />
+      }
+      if (classes.includes('wake-word-state-machine-diagram-embed')) {
+        return <WakeWordStateMachineDiagram />
+      }
+      if (classes.includes('mentor-card-embed')) {
+        return <MentorCard />
+      }
+      if (classes.includes('special-thanks-card-embed')) {
+        return <SpecialThanksCard />
       }
       return (
         <div className={className} {...props}>
