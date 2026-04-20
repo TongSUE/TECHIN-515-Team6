@@ -330,7 +330,9 @@ The atomizer PCB includes an onboard toggle switch. Because toggling it on every
 | Progress bar reset to 26% repeatedly | Same single-trigger issue — timer cleared before 3 s elapsed | Same fix |
 | Atomizer PCB internal switch interfered with control | PCB switch disconnected GND path when in OFF state | Soldered switch pads to permanently bridge |
 
-<!-- IMAGE: atomizer misting demo (photo pending) -->
+<video controls muted playsinline style="width:100%;border-radius:0.5rem;margin-bottom:0.75rem">
+  <source src="images/devlog/pir_test.mp4" type="video/mp4" />
+</video>
 
 <a id="schematic-update" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 <a id="refine-cad-schematic" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>

@@ -153,6 +153,10 @@ Key observations from the prototype:
 - The BME680 needs an exposed vent path to sample ambient air rather than recirculated interior air.
 - The XIAO ESP32-S3's USB-C port should remain externally accessible for flashing.
 
+![AuraSync enclosure prototype — front view](images/devlog/enclosure_1.png)
+
+![AuraSync enclosure prototype — rear panel and component bay](images/devlog/enclosure_2.png)
+
 ### Planned refinements
 
 Once PCB dimensions are locked and the atomizer module arrives (replacing the original pump for mist output), the enclosure will be re-modelled with precise mounting constraints and toleranced slots for sensor vents.
