@@ -52,15 +52,13 @@
 #include "esp_mn_speech_commands.h"
 
 // ============================================================
-// 2. Credentials — fill in before flashing
+// 2. Credentials — defined in secrets.h (gitignored)
+//    Copy secrets.h.example → secrets.h and fill in your values.
 // ============================================================
-const char* WIFI_SSID     = "Suetta";
-const char* WIFI_PASSWORD = "REDACTED";
-
-// Firebase project settings
-#define FIREBASE_DATABASE_URL  "https://aurasync-team6-default-rtdb.firebaseio.com/"
-// Database secret (Firebase Console -> Project Settings -> Service accounts -> Database secrets)
-#define FIREBASE_DATABASE_SECRET "REDACTED"
+#include "secrets.h"
+// secrets.h must define:
+//   WIFI_SSID, WIFI_PASSWORD
+//   FIREBASE_DATABASE_URL, FIREBASE_DATABASE_SECRET
 
 const unsigned long WIFI_TIMEOUT_MS = 15000;
 

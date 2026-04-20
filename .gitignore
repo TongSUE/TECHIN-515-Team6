@@ -19,6 +19,10 @@ KiCAD/**/*.bak
 monitor/__pycache__/
 monitor/*.pyc
 monitor/.streamlit/
+monitor/.env
+
+# Arduino credentials (copy secrets.h.example → secrets.h and fill in)
+Code/**/secrets.h
 
 # OS
 .DS_Store

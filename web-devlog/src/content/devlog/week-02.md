@@ -248,6 +248,6 @@ Hardware is expected to arrive next week, so our focus shifts to bring-up and in
 | Done | Task | Description |
 |:-:|---|---|
 | ✅ | **Refine CAD & Schematic** | Schematic updated for SPH0645 mic swap and PIR sensor addition. |
-| ⬜ | **WiFi & Firebase** | Deferred — Firebase integration planned for Week 4. |
+| ✅ | **WiFi & Firebase** | Firebase Realtime Database connected; spray events logged with NTP timestamps; cloud dashboard built. |
 | ✅ | **Microphone Bring-up** | SPH0645 I2S mic operational; ESP-SR voice recognition working with wake-word. |
 | ✅ | **Atomizer Test** | HC-SR501 PIR sensor integrated; atomizer presence-triggered via 2N2222 transistor. |

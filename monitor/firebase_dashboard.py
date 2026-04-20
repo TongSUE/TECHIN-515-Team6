@@ -3,6 +3,7 @@ AuraSync Firebase Dashboard — real-time spray event monitor
 Run: streamlit run firebase_dashboard.py
 """
 
+import os
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -12,9 +13,16 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+# Load .env if present (development); in production set env vars directly
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # ── Config ────────────────────────────────────────────────────────────────────
-DATABASE_URL    = "https://aurasync-team6-default-rtdb.firebaseio.com"
-DATABASE_SECRET = "REDACTED"
+DATABASE_URL    = os.getenv("DATABASE_URL", "")
+DATABASE_SECRET = os.getenv("DATABASE_SECRET", "")
 REFRESH_S       = 5
 TZ              = ZoneInfo("America/Los_Angeles")
 TZ_LABEL        = "Seattle"

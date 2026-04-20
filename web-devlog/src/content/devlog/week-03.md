@@ -27,22 +27,22 @@ credits:
       - Devlog
 prior_week_progress:
   refine-cad-schematic: true
-  wifi-firebase: false
+  wifi-firebase: true
   microphone-module: true
   atomizer-test: true
 planned_next:
-  - id: firebase
-    label: Firebase Integration
-    description: Push live sensor event data to Firebase Realtime Database.
-  - id: milestone-1
-    label: Milestone 1 Demo Fair
-    description: Present live voice + PIR demo at workstation; 10 min presentation + 5 min Q&A.
-  - id: enclosure
-    label: Low-fi Enclosure
-    description: Fabricate cardboard or laser-cut enclosure for demo form factor.
+  - id: end-to-end-integration
+    label: PIR + Atomizer + Firebase End-to-End
+    description: "Highest priority: merge the two validated paths — PIR trigger → atomizer spray → Firebase event write — completing the first full closed-loop pipeline."
+  - id: unified-state-machine
+    label: Voice + PIR Unified State Machine
+    description: Merge voice commands and PIR triggers into a single state machine with defined priority (e.g. voice "stop" can interrupt a PIR-triggered spray) and concurrent conflict handling.
+  - id: mobile-app
+    label: Mobile App Framework
+    description: Build a basic app that connects to Firebase and displays spray event history with timestamps.
   - id: bme680-bring-up
     label: BME680 Bring-up
-    description: Integrate environmental sensor once Adafruit order arrives.
+    description: "If sensor arrives this week: validate I2C, read raw VOC/temperature/humidity, and begin collecting bathroom VOC time-series for the ML dataset."
 ---
 
 ## Executive Summary
@@ -337,9 +337,11 @@ The KiCAD schematic was revised to reflect this week's hardware changes:
 
 ## Next Steps
 
+**Week 4 Plan · April 21 – April 27, 2026**
+
 | Done | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **Firebase Integration** | Push live sensor event data to Firebase Realtime Database. |
-| <input type="checkbox" /> | **Milestone 1 Demo Fair** | Live voice + PIR demo at workstation; 10 min presentation + 5 min Q&A. |
-| <input type="checkbox" /> | **Low-fi Enclosure** | Fabricate cardboard or laser-cut enclosure for demo form factor. |
-| <input type="checkbox" /> | **BME680 Bring-up** | Integrate environmental sensor once Adafruit order arrives. |
+| <input type="checkbox" /> | **PIR + Atomizer + Firebase End-to-End** | Highest priority — merge the two validated paths: PIR trigger → atomizer spray → Firebase event write. First full closed-loop pipeline. |
+| <input type="checkbox" /> | **Voice + PIR Unified State Machine** | Merge voice commands and PIR triggers into one state machine with defined priority (e.g. voice "stop" interrupts a PIR-triggered spray) and concurrent conflict handling. |
+| <input type="checkbox" /> | **Mobile App Framework** | Build a basic app that connects to Firebase and displays spray event history with timestamps. |
+| <input type="checkbox" /> | **BME680 Bring-up** *(if arrives)* | Validate I2C, read raw VOC / temperature / humidity, and begin collecting bathroom VOC time-series for the ML dataset. |
