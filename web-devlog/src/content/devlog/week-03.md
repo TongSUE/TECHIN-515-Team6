@@ -3,7 +3,7 @@ week: 3
 date: "April 14 - April 20, 2026"
 title: "Voice, Firebase & PIR — Build Log"
 status: "In Progress"
-show_next_steps: false
+show_next_steps: true
 summary: >
   Yutong validated PSRAM and the SPH0645 microphone, built the full ESP-SR
   voice recognition pipeline with a wake-word state machine and a real-time
@@ -211,9 +211,7 @@ Getting the ESP32 authenticated took three attempts:
 
 **Attempt 3 — Database secret (legacy token).** Setting `fbConfig.signer.tokens.legacy_token` to the project's database secret bypasses GITKit authentication entirely. It works immediately, requires no user management, and is the correct pattern for an IoT device (not a human client).
 
-### Time Sync & Event Schema
-
-`configTime(0, 0, "pool.ntp.org")` runs at boot and blocks until `time(nullptr) > 1e9`, guaranteeing a valid UTC epoch before the first event is written.
+### Event Schema
 
 Each spray event pushed to `/spray_events/<Firebase push ID>`:
 
@@ -232,8 +230,6 @@ Each spray event pushed to `/spray_events/<Firebase push ID>`:
 `monitor/firebase_dashboard.py` is a Streamlit app that reads spray events from Firebase without needing a USB connection.
 
 **Data access:** Plain `requests.get(f"{DATABASE_URL}/spray_events.json?auth={DATABASE_SECRET}")` — no Firebase SDK or service-account JSON required. `@st.cache_data(ttl=5)` caches the response for 5 seconds; `st.rerun()` drives the auto-refresh loop.
-
-**Timestamps** are converted to **Seattle time** (`zoneinfo.ZoneInfo("America/Los_Angeles")`).
 
 **UI features:**
 - Dark / light mode toggle via CSS custom properties + `st.session_state`
