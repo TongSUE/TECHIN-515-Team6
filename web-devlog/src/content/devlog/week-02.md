@@ -2,7 +2,7 @@
 week: 2
 date: "April 7 - April 13, 2026"
 title: "Schematic, Firmware & ML Data Strategy"
-status: "Complete"
+status: "Completed"
 summary: >
   This week we built the engineering foundation: Yutong completed the KiCAD schematic with custom footprints and the ESP32-S3 firmware framework, while Lucia delivered an early 3D enclosure prototype and a full ML dataset survey.
 credits:
@@ -39,9 +39,12 @@ planned_next:
 
 ## Executive Summary
 
-With hardware still in transit, we maximised parallel engineering this week. Yutong completed the **KiCAD system schematic** (with custom footprints for XIAO ESP32-S3, INMP441, and MT3608 drawn from scratch) and the **ESP32-S3 firmware skeleton** (`AuraSync.ino`): non-blocking sensor loops, a four-state state machine, and I2S + BME680 + WiFi initialization. Lucia delivered an **early 3D enclosure prototype** exploring the physical layout of the fragrance container and pump, and conducted a thorough **ML dataset survey** mapping four public datasets to our two sensing modalities.
+Hardware still in transit — we ran parallel engineering tracks to stay productive.
 
-The one deliverable still in progress is the formal ML pipeline presentation slide—the data strategy is fully defined and documented below, and will be formalised into a deck alongside hardware bring-up next week.
+- **KiCAD schematic** — Yutong drew custom footprints for the XIAO ESP32-S3, INMP441 mic, and MT3608 from scratch; completed the full system schematic with power architecture and pin assignments locked.
+- **Firmware skeleton** — `AuraSync.ino` scaffolded: non-blocking sensor loops, four-state machine (IDLE → ML → ACTUATION → COOLDOWN), I2S + BME680 + WiFi initialisation, zero `delay()` calls.
+- **3D enclosure prototype** — Lucia built an early-stage enclosure model to validate spatial layout: pump outlet clearance, BME680 vent path, and USB-C access point identified.
+- **ML dataset survey** — Mapped four public datasets (ESC-50, AudioSet, two Kaggle IAQ sets) to our two sensing modalities; hybrid pre-train + fine-tune strategy defined.
 
 ---
 

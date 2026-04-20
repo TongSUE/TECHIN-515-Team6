@@ -7,10 +7,10 @@ show_next_steps: true
 summary: >
   Yutong validated PSRAM and the SPH0645 microphone, built the full ESP-SR
   voice recognition pipeline with a wake-word state machine and a real-time
-  serial monitor, and integrated Firebase Realtime Database with a cloud
-  dashboard. Lucia wired the HC-SR501 PIR sensor to presence-trigger the
-  ultrasonic atomizer and updated the project budget. The BME680 VOC sensor
-  remains in transit.
+  serial monitor, integrated Firebase Realtime Database with a cloud dashboard,
+  and updated the KiCAD schematic to v2.0. Lucia wired the HC-SR501 PIR sensor
+  to presence-trigger the ultrasonic atomizer, prepared the Milestone 1 slides,
+  and submitted the budget update form. The BME680 VOC sensor remains in transit.
 credits:
   - name: Lucia
     initials: L
@@ -47,9 +47,17 @@ planned_next:
 
 ## Executive Summary
 
-This week the full sensor-to-cloud pipeline came together. Yutong validated the XIAO ESP32-S3's 8 MB OPI PSRAM (required for the ESP-SR AFE), confirmed the SPH0645 I2S microphone, and built the complete **ESP-SR v2.0 voice recognition pipeline** — wake-word state machine, FreeRTOS dual-core task split, and a real-time **Streamlit serial monitor**. He then ported the sketch to **Firebase Realtime Database**, working through three authentication approaches before landing on a database-secret legacy token, and built a companion **cloud dashboard** that polls spray events from anywhere without a USB connection. In parallel, Lucia wired the **HC-SR501 PIR presence sensor** through a 2N2222 transistor to gate the ultrasonic atomizer, delivering the first end-to-end presence-triggered spray cycle, and compiled the current hardware budget. The Adafruit BME680 VOC sensor remains delayed; bring-up is deferred to next week.
+Two validated hardware paths, a live cloud pipeline, and the first end-to-end spray cycle.
 
-## Note — Mentor Meeting
+- **PSRAM & mic validation** — Confirmed 8 MB OPI PSRAM (required for ESP-SR AFE); brought up SPH0645 with energy-based VAD in isolation before integrating the full pipeline.
+- **Voice recognition** — Built complete ESP-SR v2.0 pipeline: AFE noise suppression + MultiNet v7 keyword spotter, wake-word state machine ("Aura" → 7 s command window), FreeRTOS dual-core split. Debugged two non-obvious I2S issues (API conflict; DMA interleave).
+- **Serial voice monitor** — Real-time Streamlit dashboard (`voice_monitor.py`) streams audio level, recognised commands, and state over USB serial — no user interaction needed.
+- **Firebase integration** — Connected ESP32 to Firebase Realtime Database; worked through three authentication approaches before landing on database-secret legacy token. Every "Spray" command writes a timestamped event to `/spray_events`.
+- **Cloud dashboard** — `firebase_dashboard.py`: polls Firebase via REST, no SDK, dark/light mode, 5-second auto-refresh, spray history charts.
+- **PIR + atomizer** — Lucia wired HC-SR501 through a 2N2222 NPN transistor; first end-to-end presence-triggered spray cycle confirmed.
+- **BME680** — Still in transit; bring-up deferred to Week 4.
+
+## Mentor Meeting
 
 *We connected with our project mentor this week.*
 
@@ -76,27 +84,33 @@ Delegating voice to Apple/Google APIs dissolves the custom cloud pipeline questi
 
 ## 1. Hardware Bring-up, Voice Recognition & Serial Monitor
 
+The build followed a deliberate bottom-up sequence: verify the hardware prerequisite (PSRAM), confirm the microphone works in isolation, then layer the full ESP-SR voice pipeline on top. This way, each step has a clear pass/fail gate before adding the next layer of complexity.
+
 ### PSRAM Validation
 
 ESP-SR's AFE (Audio Front End) allocates large audio buffers in PSRAM at initialisation — without PSRAM the AFE crashes immediately. Before committing to the full voice pipeline, we ran `PsramTest.ino` to confirm the hardware prerequisite.
 
 The sketch calls `psramInit()`, checks `psramFound()`, reports total and free heap via `getPsramSize()` / `ESP.getFreePsram()`, and attempts a 512 KB `ps_malloc()` allocation. **Pass condition:** `psramFound()` = YES, allocation succeeds.
 
-Result: **8,386,560 bytes (8 MB) of OPI PSRAM** confirmed available — ESP-SR can run.
+> **Result:** 8,386,560 bytes (8 MB) of OPI PSRAM confirmed available — ESP-SR can run.
 
 > **Build note:** Tools → PSRAM must be set to **"OPI PSRAM"** in the Arduino IDE board menu. The default "Disabled" setting makes `psramFound()` return false even though the hardware is present.
 
+---
+
 ### Microphone Bring-up
 
-Before adding ESP-SR complexity, `MicTest.ino` validated the SPH0645 wiring and audio path in isolation. It uses the legacy `driver/i2s.h` API (simpler for standalone tests; `VoiceTest` switches to the new `i2s_std.h` API required by ESP-SR).
+PSRAM confirmed — the next question was whether the microphone itself was producing valid audio. Rather than debug hardware and software simultaneously inside the full ESP-SR pipeline, we wrote a standalone `MicTest.ino` to validate the SPH0645 wiring and audio path first. It uses the legacy `driver/i2s.h` API (simpler for standalone tests; `VoiceTest` switches to the new `i2s_std.h` API required by ESP-SR).
 
 A **DC-blocking high-pass filter** (cutoff ~8 Hz, implemented as a first-order IIR) removes the SPH0645's DC bias before energy estimation. An **energy-based VAD** compares short-term energy (α = 0.03, time constant ~32 ms) against a long-term noise floor (α = 0.001, time constant ~2 s); speech is flagged when STE/LTE > 8× and held for 2 s via the onboard LED.
 
-Result: microphone confirmed live; VAD reliably separated voice from background noise across the lab bench.
+> **Result:** Microphone confirmed live; VAD reliably separated voice from background noise across the lab bench.
+
+---
 
 ### SPH0645 I2S Microphone
 
-The INMP441 originally specified in the schematic was replaced with the **Adafruit SPH0645LM4H breakout** (product #3421). The SPH0645 has **better performance** — higher SNR and a lower noise floor — while sharing an identical I2S pinout. The only wiring difference: SPH0645's SEL pin is tied to GND, selecting the **left channel**.
+Before describing the bring-up results, a note on the hardware itself: the microphone used is not the INMP441 originally in the schematic. The INMP441 originally specified in the schematic was replaced with the **Adafruit SPH0645LM4H breakout** (product #3421). The SPH0645 has **better performance** — higher SNR and a lower noise floor — while sharing an identical I2S pinout. The only wiring difference: SPH0645's SEL pin is tied to GND, selecting the **left channel**.
 
 | Signal | XIAO Pin | GPIO | Notes |
 |--------|----------|------|-------|
@@ -111,7 +125,11 @@ SPH0645 outputs 18-bit audio left-aligned in bits [31:14] of a 32-bit I2S frame.
 
 ![SPH0645 wiring to XIAO ESP32-S3](images/devlog/mictest_wiring.png)
 
+---
+
 ### ESP-SR Pipeline
+
+With PSRAM confirmed and the microphone producing clean audio, we could move to the actual voice recognition layer. `VoiceTest.ino` integrates both into Espressif's ESP-SR framework to add wake-word detection and command recognition on top of the validated audio path.
 
 **ESP-SR v2.0** (bundled with Arduino ESP32 v3.x, no separate install) provides:
 - **AFE** (Audio Front End) — noise suppression + VAD; runs in PSRAM (`AFE_MEMORY_ALLOC_MORE_PSRAM`)
@@ -148,15 +166,20 @@ The firmware streams structured lines for the serial monitor:
 
 ### Challenges
 
-**All I2S samples returned `0x00000001`.**
-The ESP-SR AFE internally initialises I2S using the new driver API. When we subsequently called the legacy API's `i2s_driver_install()`, it corrupted the hardware registers, producing a constant `0x00000001` pattern. Resolution: replaced the entire I2S layer with the new `i2s_std.h` API (`i2s_chan_handle_t`, `i2s_new_channel`, `i2s_channel_read`).
+| Symptom | Root cause | Fix |
+|---------|-----------|-----|
+| All I2S samples returned `0x00000001` | ESP-SR AFE initialises I2S internally via the new driver API; calling the legacy `i2s_driver_install()` after that corrupted the hardware registers | Replaced the entire I2S layer with `i2s_std.h` (`i2s_chan_handle_t`, `i2s_new_channel`, `i2s_channel_read`) |
+| Recognition never fired despite audible input | DMA buffer interleaves L/R slots even in MONO config — AFE received L, 0, L, 0, effectively halving the sample rate to 8 kHz and breaking MultiNet's phoneme model | Allocate a 2× buffer, read 2× samples, then extract only even-indexed frames before passing to the AFE |
 
-**Recognition never fired despite real audio arriving.**
-Even configured as MONO, the DMA buffer interleaves left and right channel slots: indices 0, 2, 4… = left (SPH0645 data); indices 1, 3, 5… = right (floating ≈ 0). The AFE therefore received the pattern L, 0, L, 0 — halving the effective sample rate to 8 kHz and breaking MultiNet's phoneme model. Resolution: allocate a 2× buffer, read 2× the expected samples, then extract only even indices before feeding the AFE.
+---
 
 ### Serial Voice Monitor
 
+The voice pipeline was now functional, but observing it meant reading raw serial output in the Arduino IDE — a stream of `LEVEL:xx.x`, `WORD:spray:0.87`, and `STATE:listening` lines mixed together and impossible to parse at a glance. We built `monitor/voice_monitor.py` as a live Streamlit dashboard to make the system's state immediately readable during testing.
+
 `monitor/voice_monitor.py` implements a live monitoring interface that requires no user interaction beyond opening the URL.
+
+![AuraSync Voice Monitor — SPRAY state active, live audio level and vocabulary cards](images/devlog/voice_test_streamlit_app.png)
 
 **Architecture:** Uses the `st.empty()` placeholder pattern — a single `while True` loop overwrites placeholder contents each frame without triggering a full Streamlit script rerun.
 
@@ -175,7 +198,9 @@ Even configured as MONO, the DMA buffer interleaves left and right channel slots
 
 The Plotly charts are updated at reduced frequency to avoid the re-render flicker that occurs when a full SVG is replaced each frame.
 
-![Streamlit dashboard — live audio level and recognition state](images/devlog/streamlit_app.png)
+<video controls muted playsinline style="width:100%;border-radius:0.5rem;margin-bottom:0.75rem">
+  <source src="images/devlog/voice_monitor_test.mp4" type="video/mp4" />
+</video>
 
 > **Looking ahead:** Once the BME680 arrives, VOC gas resistance becomes a complementary spray trigger — no wake word needed when odour spikes above a learned threshold. Longer-term, delegating voice to Apple HomeKit / Google Home / Matter APIs offloads speech recognition to proven platform infrastructure; AuraSync would only need to respond to accessory events over the local home network.
 
@@ -185,7 +210,9 @@ The Plotly charts are updated at reduced frequency to avoid the re-render flicke
 
 ### Why Firebase
 
-The serial monitor requires a USB connection to the board. To persist spray events beyond the serial session — and prove the data pipeline end-to-end — we connected the ESP32 to **Firebase Realtime Database**. It is REST-accessible from any device, requires no custom server, and the free Spark tier is sufficient for a demo.
+The voice pipeline was fully functional, but every spray event existed only in RAM — once the board was unplugged or reset, the data was gone. The serial monitor also required a physical USB cable to observe anything. To prove the data pipeline end-to-end and make events accessible remotely, the next step was adding persistent cloud storage.
+
+We chose **Firebase Realtime Database** because it is REST-accessible from any device, requires no custom server, and the free Spark tier is sufficient for a demo. It is REST-accessible from any device, requires no custom server, and the free Spark tier is sufficient for a demo.
 
 ### Firmware Architecture
 
@@ -211,6 +238,8 @@ Getting the ESP32 authenticated took three attempts:
 
 **Attempt 3 — Database secret (legacy token).** Setting `fbConfig.signer.tokens.legacy_token` to the project's database secret bypasses GITKit authentication entirely. It works immediately, requires no user management, and is the correct pattern for an IoT device (not a human client).
 
+> **Key takeaway:** IoT devices should not authenticate as human users. A database secret (or a service-account key with restricted rules) is the right primitive — no session management, no password rotation, no anonymous user accumulation.
+
 ### Event Schema
 
 Each spray event pushed to `/spray_events/<Firebase push ID>`:
@@ -223,11 +252,13 @@ Each spray event pushed to `/spray_events/<Firebase push ID>`:
 }
 ```
 
-**End-to-end demo:** Say **"Aura"** → say **"Spray"** within the 7-second window → LED lights, atomizer fires, and a new record appears in the Firebase Console in real time.
+> **End-to-end demo:** Say **"Aura"** → say **"Spray"** within the 7-second window → LED lights, atomizer fires, and a new record appears in the Firebase Console in real time.
+
+![Firebase Realtime Database — spray_events with push IDs, command, iso timestamp, and unixMs](images/devlog/firebase_test.png)
 
 ### Cloud Dashboard
 
-`monitor/firebase_dashboard.py` is a Streamlit app that reads spray events from Firebase without needing a USB connection.
+With events persisting in Firebase, the last piece was a way to view them without opening the Firebase Console. We wanted the same zero-friction experience as the serial monitor — open a URL, see live data. `monitor/firebase_dashboard.py` is a Streamlit app that pulls spray events from Firebase via REST and displays them without needing a USB connection.
 
 **Data access:** Plain `requests.get(f"{DATABASE_URL}/spray_events.json?auth={DATABASE_SECRET}")` — no Firebase SDK or service-account JSON required. `@st.cache_data(ttl=5)` caches the response for 5 seconds; `st.rerun()` drives the auto-refresh loop.
 
@@ -240,6 +271,8 @@ Each spray event pushed to `/spray_events/<Firebase push ID>`:
 - Daily breakdown with proportional progress bars
 
 The cumulative chart was chosen over a raw scatter plot because it simultaneously communicates frequency (slope) and total usage (height).
+
+![AuraSync Cloud Dashboard — 5 sprays recorded, cumulative chart and hourly breakdown](images/devlog/firebase_test_streamlit_app.png)
 
 > **Looking ahead:** **Bi-directional app control** — an app writes `{action:"spray", executed:false}` to `/commands/<pushId>`; the ESP32 polls, executes, then marks `executed:true`. No WebSocket or persistent connection needed. **VOC decay dashboard** — once the BME680 arrives, plot gas resistance with spray markers, compute a "freshness index" (0–100 %, normalised resistance recovery), and estimate re-spray time from a fitted first-order exponential: C(t) = C_max · e^(−k·t).
 
@@ -304,13 +337,16 @@ The atomizer PCB includes an onboard toggle switch. Because toggling it on every
 
 ## 4. Schematic Update
 
-The KiCAD schematic was revised to reflect this week's hardware changes:
+The KiCAD schematic was updated to **Rev v2.0** to reflect this week's hardware changes:
 
-- **SPH0645** replaces INMP441 — same I2S pins, channel selection changed to SEL = GND (left channel)
-- **HC-SR501 PIR** added — signal output to GPIO4
-- **2N2222 NPN transistor** replaces the MOSFET driver module for atomizer switching (lower voltage drop, simpler gate drive)
+- **U4 SPH0645\_Mic** replaces the INMP441 — same I2S pin assignments (BCLK → GPIO7, LRCL → GPIO8, DOUT → GPIO9); SEL tied to GND to select the left channel
+- **U2 HC-SR501 PIR** added — VCC → 3V3, GND → GND, OUT → GPIO4 (Signal)
+- **J2 Battery connector** added as a dedicated 2-pin symbol (BATT+ / BATT−) for the LiPo input
+- U1 BME680, U3 MOSFET driver, U5 MT3608 boost, and all power rails remain unchanged from v1.0
 
-<!-- IMAGE: updated KiCAD schematic (export pending) -->
+![AuraSync v2.0 Schematic — SPH0645 mic, HC-SR501 PIR, BME680, MT3608 boost, MOSFET driver, battery connector](images/devlog/schematic_v2.png)
+
+*AuraSync v2.0 KiCAD schematic — Rev v2.0, 2026-04-20.*
 
 ## 5. Budget Update
 
@@ -333,7 +369,7 @@ The KiCAD schematic was revised to reflect this week's hardware changes:
 
 ## Next Steps
 
-**Week 4 Plan · April 21 – April 27, 2026**
+With both hardware paths validated and the cloud pipeline live, Week 4 shifts from bring-up to integration — merging the two control loops, adding app connectivity, and onboarding the BME680 once it arrives.
 
 | Done | Task | Description |
 |:-:|---|---|

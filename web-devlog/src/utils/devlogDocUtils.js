@@ -81,7 +81,7 @@ export function splitNotesPanelBlock(markdown) {
   for (let i = 0; i < lines.length; i++) {
     const t = lines[i].trim()
     if (!/^##\s+/.test(t)) continue
-    if (/pre[-\s]?flight/i.test(t) || /^##\s+note\b/i.test(t)) { start = i; break }
+    if (/pre[-\s]?flight/i.test(t) || /^##\s+notes?\b/i.test(t) || /mentor/i.test(t)) { start = i; break }
   }
   if (start === -1) {
     return { main: markdown.trim(), notesPanel: null, notesPanelTitle: null }
@@ -123,7 +123,7 @@ export function buildDevlogWeekToc({
     })
     for (const t of extractTocFromMarkdown(notes)) {
       if (/pre-?flight/i.test(t.text)) continue // skip the section heading itself
-      if (/^note\b/i.test(t.text)) continue      // skip generic "Note — ..." heading
+      if (/^notes?\b/i.test(t.text) || /^mentor\b/i.test(t.text)) continue // skip section heading itself
       items.push(t)
     }
   }

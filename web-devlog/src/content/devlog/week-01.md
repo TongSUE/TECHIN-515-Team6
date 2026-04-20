@@ -34,9 +34,12 @@ planned_next:
 
 ## Executive Summary
 
-This week, we officially kicked off **AuraSync**—a standalone, context-aware scent dispenser designed for intimate home spaces. We locked down our foundational document (Project Register and Ownership), translating our high-level concept into a concrete system architecture. Our core innovation is a **Chemical Feedback Loop**: using a VOC sensor to detect scent dispersal and trigger a machine-learning cooldown state, preventing the runaway over-spraying common in dumb timed dispensers.
+Week 1 was project foundation — concept locked, architecture defined, hardware ordered, devlog site live.
 
-Along with defining the architecture, we finalized our hardware stack, ordered components, established the end-to-end user flow, and built this very devlog website to track our progress.
+- **Concept & architecture** — Defined AuraSync as a context-aware scent diffuser built around a **Chemical Feedback Loop**: the BME680 VOC sensor measures post-spray air quality and feeds an on-device ML cooldown, preventing the over-saturation common in timed dispensers.
+- **Hardware stack** — Finalised BOM: XIAO ESP32-S3, BME680, INMP441 I2S mic, ultrasonic atomizer, MT3608 boost + LiPo. Components ordered; in transit.
+- **User flow** — End-to-end interaction model documented; functional architecture diagram drawn (below).
+- **Devlog site** — This site scaffolded, styled, and deployed to GitHub Pages.
 
 ### Functional architecture
 
