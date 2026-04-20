@@ -43,44 +43,63 @@ Web/                          ← git root (this repo)
 ├── Code/
 │   ├── AuraSync/             ← main firmware (state machine)
 │   ├── VoiceTest/            ← ESP-SR voice recognition prototype
+│   ├── FirebaseTest/         ← VoiceTest + Firebase Realtime Database
 │   ├── MicTest/              ← SPH0645 bring-up / VAD test
 │   └── PsramTest/            ← PSRAM validation
 ├── KiCAD/AuraSync_v1/        ← schematic + PCB layout (KiCAD 9)
-├── monitor/                  ← real-time Streamlit dashboard
+├── monitor/
+│   ├── voice_monitor.py      ← real-time serial monitor (USB)
+│   ├── firebase_dashboard.py ← cloud dashboard (reads Firebase, no USB needed)
+│   └── requirements.txt
 ├── web-devlog/               ← React + Vite devlog site
 └── README.md
 ```
 
 ---
 
-## Running the Real-time Monitor
+## Running the Serial Voice Monitor
 
-The Streamlit dashboard streams live audio level and recognised commands from the ESP32-S3 over USB serial.
+Streams live audio level and recognised commands from the ESP32-S3 over USB serial.
 
-**Requirements:** Python 3.9+, ESP32-S3 flashed with `VoiceTest.ino`, Arduino IDE serial monitor **closed**.
+**Requirements:** Python 3.9+, ESP32-S3 flashed with `VoiceTest.ino` or `FirebaseTest.ino`, Arduino IDE serial monitor **closed**.
 
 ```bash
 cd monitor
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run voice_monitor.py
 ```
 
-Opens at `http://localhost:8501`. On the same Wi-Fi, open the **Network URL** on any phone or tablet for a wireless view.
+Opens at `http://localhost:8501`. The app auto-detects the COM port — no configuration needed.
 
-The app auto-detects the COM port — no configuration needed.
+---
+
+## Running the Firebase Cloud Dashboard
+
+Reads spray events from Firebase Realtime Database — no USB connection required.
+
+```bash
+cd monitor
+pip install -r requirements.txt
+streamlit run firebase_dashboard.py
+```
+
+Opens at `http://localhost:8502`. Supports dark/light mode toggle; auto-refreshes every 5 seconds.
 
 ---
 
 ## Flashing VoiceTest (Voice Recognition)
 
 1. Open `Code/VoiceTest/VoiceTest.ino` in Arduino IDE
-2. Fill in your Wi-Fi credentials (search `YOUR_WIFI_SSID`)
-3. **Tools → Board:** Seeed XIAO ESP32-S3
-4. **Tools → PSRAM:** OPI PSRAM
-5. **Tools → Partition Scheme:** Huge APP (3MB No OTA / 1MB SPIFFS)
-6. Run `Code/VoiceTest/flash_model.ps1` **once** to write ESP-SR models to flash
-7. Upload `VoiceTest.ino`
-8. Say **"Aura"** to open the 5-second command window, then **"Spray"** or **"Stop"**
+2. **Tools → Board:** Seeed XIAO ESP32-S3
+3. **Tools → PSRAM:** OPI PSRAM
+4. **Tools → Partition Scheme:** Huge APP (3MB No OTA / 1MB SPIFFS)
+5. Run `Code/VoiceTest/flash_model.ps1` **once** to write ESP-SR models to flash
+6. Upload `VoiceTest.ino`
+7. Say **"Aura"** to open the 7-second command window, then **"Spray"** or **"Stop"**
+
+## Flashing FirebaseTest (Voice + Firebase)
+
+Same steps as VoiceTest, but open `Code/FirebaseTest/FirebaseTest.ino`. Uses the same `partitions.csv` (app0 = 3.7 MB). On "Spray" detection, writes a timestamped event to `/spray_events` in Firebase Realtime Database.
 
 ---
 
@@ -99,8 +118,12 @@ IDLE → ML_PROCESSING → ACTUATION (2 s pump) → COOLDOWN (60 s VOC recovery)
 ESP-SR AFE + MultiNet v7 on FreeRTOS Core 1. Wake-word state machine:
 
 ```
-IDLE → (say "Aura") → LISTENING [5 s] → (say "Spray"/"Stop") → IDLE
+IDLE → (say "Aura") → LISTENING [7 s] → (say "Spray"/"Stop") → IDLE
 ```
+
+### `Code/FirebaseTest/FirebaseTest.ino` — Voice + Firebase
+
+Extends VoiceTest: SR task (Core 1) → FreeRTOS queue → `loop()` (Core 0) → `Firebase.RTDB.pushJSON()`. Auth via database-secret legacy token; NTP time sync at boot.
 
 ---
 

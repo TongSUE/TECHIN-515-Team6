@@ -1,25 +1,28 @@
 ---
 week: 3
 date: "April 14 - April 20, 2026"
-title: "Voice Recognition, PIR Sensor & Milestone 1 Prep"
+title: "Voice, Firebase & PIR — Build Log"
 status: "In Progress"
 show_next_steps: false
 summary: >
-  Yutong built the full ESP-SR voice recognition pipeline with a wake-word
-  state machine and a real-time Streamlit dashboard; Lucia integrated an
-  HC-SR501 PIR sensor to presence-trigger the ultrasonic atomizer. The VOC
-  sensor remains in transit from Adafruit.
+  Yutong validated PSRAM and the SPH0645 microphone, built the full ESP-SR
+  voice recognition pipeline with a wake-word state machine and a real-time
+  serial monitor, and integrated Firebase Realtime Database with a cloud
+  dashboard. Lucia wired the HC-SR501 PIR sensor to presence-trigger the
+  ultrasonic atomizer and updated the project budget. The BME680 VOC sensor
+  remains in transit.
 credits:
   - name: Lucia
     initials: L
     tags:
       - PIR Sensor
       - Milestone Slides
+      - Budget Update Form
   - name: Yutong
     initials: Y
     tags:
       - Voice Recognition
-      - Streamlit Dashboard
+      - Firebase
       - Schematic Update
       - Devlog
 prior_week_progress:
@@ -44,7 +47,7 @@ planned_next:
 
 ## Executive Summary
 
-This week both hardware paths came alive. Yutong brought up the **SPH0645 I2S microphone** and integrated **Espressif's ESP-SR speech recognition** engine, implementing a wake-word state machine ("Aura" → command window) and a companion **real-time Streamlit dashboard** that streams audio level and recognised commands over serial. Lucia wired the **HC-SR501 PIR presence sensor** through a 2N2222 transistor to gate the ultrasonic atomizer, delivering the first end-to-end presence-triggered spray cycle. The Adafruit VOC sensor order remains delayed; BME680 bring-up is deferred to next week.
+This week the full sensor-to-cloud pipeline came together. Yutong validated the XIAO ESP32-S3's 8 MB OPI PSRAM (required for the ESP-SR AFE), confirmed the SPH0645 I2S microphone, and built the complete **ESP-SR v2.0 voice recognition pipeline** — wake-word state machine, FreeRTOS dual-core task split, and a real-time **Streamlit serial monitor**. He then ported the sketch to **Firebase Realtime Database**, working through three authentication approaches before landing on a database-secret legacy token, and built a companion **cloud dashboard** that polls spray events from anywhere without a USB connection. In parallel, Lucia wired the **HC-SR501 PIR presence sensor** through a 2N2222 transistor to gate the ultrasonic atomizer, delivering the first end-to-end presence-triggered spray cycle, and compiled the current hardware budget. The Adafruit BME680 VOC sensor remains delayed; bring-up is deferred to next week.
 
 ## Note — Mentor Meeting
 
@@ -69,12 +72,31 @@ Delegating voice to Apple/Google APIs dissolves the custom cloud pipeline questi
 
 <a id="voice-recognition" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 <a id="microphone-module" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
+<a id="streamlit-dashboard" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 
-## 1. Voice Recognition — SPH0645 + ESP-SR
+## 1. Hardware Bring-up, Voice Recognition & Serial Monitor
 
-### Hardware — SPH0645 I2S Microphone
+### PSRAM Validation
 
-The INMP441 originally specified in the schematic was swapped for the **Adafruit SPH0645LM4H breakout** (product #3421). The I2S pinout is identical; the difference is the channel selection: SPH0645's SEL pin is tied to GND, selecting the **left channel**.
+ESP-SR's AFE (Audio Front End) allocates large audio buffers in PSRAM at initialisation — without PSRAM the AFE crashes immediately. Before committing to the full voice pipeline, we ran `PsramTest.ino` to confirm the hardware prerequisite.
+
+The sketch calls `psramInit()`, checks `psramFound()`, reports total and free heap via `getPsramSize()` / `ESP.getFreePsram()`, and attempts a 512 KB `ps_malloc()` allocation. **Pass condition:** `psramFound()` = YES, allocation succeeds.
+
+Result: **8,386,560 bytes (8 MB) of OPI PSRAM** confirmed available — ESP-SR can run.
+
+> **Build note:** Tools → PSRAM must be set to **"OPI PSRAM"** in the Arduino IDE board menu. The default "Disabled" setting makes `psramFound()` return false even though the hardware is present.
+
+### Microphone Bring-up
+
+Before adding ESP-SR complexity, `MicTest.ino` validated the SPH0645 wiring and audio path in isolation. It uses the legacy `driver/i2s.h` API (simpler for standalone tests; `VoiceTest` switches to the new `i2s_std.h` API required by ESP-SR).
+
+A **DC-blocking high-pass filter** (cutoff ~8 Hz, implemented as a first-order IIR) removes the SPH0645's DC bias before energy estimation. An **energy-based VAD** compares short-term energy (α = 0.03, time constant ~32 ms) against a long-term noise floor (α = 0.001, time constant ~2 s); speech is flagged when STE/LTE > 8× and held for 2 s via the onboard LED.
+
+Result: microphone confirmed live; VAD reliably separated voice from background noise across the lab bench.
+
+### SPH0645 I2S Microphone
+
+The INMP441 originally specified in the schematic was replaced with the **Adafruit SPH0645LM4H breakout** (product #3421). The SPH0645 has **better performance** — higher SNR and a lower noise floor — while sharing an identical I2S pinout. The only wiring difference: SPH0645's SEL pin is tied to GND, selecting the **left channel**.
 
 | Signal | XIAO Pin | GPIO | Notes |
 |--------|----------|------|-------|
@@ -89,15 +111,17 @@ SPH0645 outputs 18-bit audio left-aligned in bits [31:14] of a 32-bit I2S frame.
 
 ![SPH0645 wiring to XIAO ESP32-S3](images/devlog/mictest_wiring.png)
 
-### Software — ESP-SR Pipeline
+### ESP-SR Pipeline
 
-**ESP-SR v2.0** (bundled with Arduino ESP32 v3.x) provides:
-- **AFE** (Audio Front End) — noise suppression + VAD (Voice Activity Detection)
-- **MultiNet v7** — keyword recognition from a vocabulary of registered phrases
+**ESP-SR v2.0** (bundled with Arduino ESP32 v3.x, no separate install) provides:
+- **AFE** (Audio Front End) — noise suppression + VAD; runs in PSRAM (`AFE_MEMORY_ALLOC_MORE_PSRAM`)
+- **MultiNet v7** — English keyword spotter; fires on `ESP_MN_STATE_DETECTED`
 
-Both run on **FreeRTOS Core 1** (pinned via `xTaskCreatePinnedToCore`) to keep the main loop free for pump and LED control.
+Both components run on **FreeRTOS Core 1** (pinned via `xTaskCreatePinnedToCore`), keeping Core 0 free for pump, LED, and Firebase I/O.
 
-PSRAM is required for the AFE's internal buffers. The XIAO ESP32-S3 carries 8 MB of OPI PSRAM; `psramInit()` must be called explicitly at the top of `setup()` before any ESP-SR initialisation.
+**Partition requirement:** The ESP-SR model files live in a dedicated SPIFFS partition. A custom `partitions.csv` (app0 = 3.7 MB, model SPIFFS = 4.25 MB) is placed in the sketch folder alongside a one-time `flash_model.ps1` script that burns the model to flash. Arduino IDE board menu: **"Huge APP (3MB No OTA / 1MB SPIFFS)"**.
+
+**Registered commands:** `aura` (wake word), `spray` (trigger atomizer), `stop`
 
 **I2S API:** The new `driver/i2s_std.h` API (ESP-IDF v5 style) is used throughout — the legacy `driver/i2s.h` conflicts with ESP-SR's internal I2S usage and produces all-zero reads.
 
@@ -107,11 +131,13 @@ Recognising short isolated commands at arbitrary moments leads to false positive
 
 <div class="wake-word-state-machine-diagram-embed"></div>
 
+The command window is **7 seconds** — 5 s proved too tight because MultiNet only runs during VAD-detected speech segments; silence gaps consume window time without advancing recognition.
+
 LED feedback: "Aura" → slow triple blink; "Spray" → LED on 2 s; "Stop" → LED off immediately.
 
 ### Serial Protocol
 
-The firmware streams structured lines for the Streamlit dashboard:
+The firmware streams structured lines for the serial monitor:
 
 | Line | Meaning | Rate |
 |------|---------|------|
@@ -128,13 +154,11 @@ The ESP-SR AFE internally initialises I2S using the new driver API. When we subs
 **Recognition never fired despite real audio arriving.**
 Even configured as MONO, the DMA buffer interleaves left and right channel slots: indices 0, 2, 4… = left (SPH0645 data); indices 1, 3, 5… = right (floating ≈ 0). The AFE therefore received the pattern L, 0, L, 0 — halving the effective sample rate to 8 kHz and breaking MultiNet's phoneme model. Resolution: allocate a 2× buffer, read 2× the expected samples, then extract only even indices before feeding the AFE.
 
-<a id="streamlit-dashboard" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
+### Serial Voice Monitor
 
-## 2. Real-time Streamlit Dashboard
+`monitor/voice_monitor.py` implements a live monitoring interface that requires no user interaction beyond opening the URL.
 
-`monitor/app.py` implements a live monitoring interface that requires no user interaction beyond opening the URL.
-
-**Architecture:** Uses the `st.empty()` placeholder pattern taught in class — a single `while True` loop overwrites placeholder contents each frame without triggering a full Streamlit script rerun.
+**Architecture:** Uses the `st.empty()` placeholder pattern — a single `while True` loop overwrites placeholder contents each frame without triggering a full Streamlit script rerun.
 
 **Auto-connection:** On startup the app scans available COM ports and connects to the first one found. If the port is held by another process (e.g. Arduino IDE serial monitor), a sidebar error explains the conflict rather than showing silent zeros.
 
@@ -152,6 +176,76 @@ Even configured as MONO, the DMA buffer interleaves left and right channel slots
 The Plotly charts are updated at reduced frequency to avoid the re-render flicker that occurs when a full SVG is replaced each frame.
 
 ![Streamlit dashboard — live audio level and recognition state](images/devlog/streamlit_app.png)
+
+> **Looking ahead:** Once the BME680 arrives, VOC gas resistance becomes a complementary spray trigger — no wake word needed when odour spikes above a learned threshold. Longer-term, delegating voice to Apple HomeKit / Google Home / Matter APIs offloads speech recognition to proven platform infrastructure; AuraSync would only need to respond to accessory events over the local home network.
+
+<a id="firebase" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
+
+## 2. Firebase Integration & Cloud Dashboard
+
+### Why Firebase
+
+The serial monitor requires a USB connection to the board. To persist spray events beyond the serial session — and prove the data pipeline end-to-end — we connected the ESP32 to **Firebase Realtime Database**. It is REST-accessible from any device, requires no custom server, and the free Spark tier is sufficient for a demo.
+
+### Firmware Architecture
+
+**Library:** `Firebase_ESP_Client` by Mobizt (Arduino Library Manager).
+
+The voice recognition SR task runs on Core 1 and writes command IDs to a **FreeRTOS queue** (depth 8). `loop()` on Core 0 drains the queue and calls `pushSprayEvent()` → `Firebase.RTDB.pushJSON()`. The voice pipeline never blocks on network I/O.
+
+### Partition Challenge
+
+`VoiceTest.ino` alone compiles to ~1.5 MB; the Firebase client library adds ~800 KB, pushing the total to ~2.3 MB — exceeding the default 2 MB app partition.
+
+**Error:** `"text section exceeds available space in device"` at link time.
+
+**Fix:** The same custom `partitions.csv` used for VoiceTest (app0 = 3.7 MB) plus **Tools → Partition Scheme → "Huge APP"** in the Arduino IDE. Both changes are required simultaneously: the CSV controls the flash layout; the IDE menu controls the linker's size check.
+
+### Authentication Journey
+
+Getting the ESP32 authenticated took three attempts:
+
+**Attempt 1 — Anonymous sign-in.** `Firebase.signUp("","")` creates a new anonymous user on every reboot. After a few test runs, 8+ anonymous accounts had accumulated in the Firebase Console. Dropped.
+
+**Attempt 2 — Email/password fixed account.** Switching to a fixed test account hit `PASSWORD_LOGIN_DISABLED` (the Email/Password provider was not yet enabled in the Console). After enabling it, the next error was `INVALID_LOGIN_CREDENTIALS` — a password mismatch between the code and what had been typed in the Console.
+
+**Attempt 3 — Database secret (legacy token).** Setting `fbConfig.signer.tokens.legacy_token` to the project's database secret bypasses GITKit authentication entirely. It works immediately, requires no user management, and is the correct pattern for an IoT device (not a human client).
+
+### Time Sync & Event Schema
+
+`configTime(0, 0, "pool.ntp.org")` runs at boot and blocks until `time(nullptr) > 1e9`, guaranteeing a valid UTC epoch before the first event is written.
+
+Each spray event pushed to `/spray_events/<Firebase push ID>`:
+
+```json
+{
+  "command": "spray",
+  "unixMs": 1776658120000,
+  "iso": "2026-04-19T21:08:40Z"
+}
+```
+
+**End-to-end demo:** Say **"Aura"** → say **"Spray"** within the 7-second window → LED lights, atomizer fires, and a new record appears in the Firebase Console in real time.
+
+### Cloud Dashboard
+
+`monitor/firebase_dashboard.py` is a Streamlit app that reads spray events from Firebase without needing a USB connection.
+
+**Data access:** Plain `requests.get(f"{DATABASE_URL}/spray_events.json?auth={DATABASE_SECRET}")` — no Firebase SDK or service-account JSON required. `@st.cache_data(ttl=5)` caches the response for 5 seconds; `st.rerun()` drives the auto-refresh loop.
+
+**Timestamps** are converted to **Seattle time** (`zoneinfo.ZoneInfo("America/Los_Angeles")`).
+
+**UI features:**
+- Dark / light mode toggle via CSS custom properties + `st.session_state`
+- 4 metric cards: total events, last spray time, time-since-last, sprays in last 60 min
+- Cumulative step chart (area fill) — shows both frequency and total growth over time
+- Hourly distribution bar chart
+- Recent events list with ago-time badges
+- Daily breakdown with proportional progress bars
+
+The cumulative chart was chosen over a raw scatter plot because it simultaneously communicates frequency (slope) and total usage (height).
+
+> **Looking ahead:** **Bi-directional app control** — an app writes `{action:"spray", executed:false}` to `/commands/<pushId>`; the ESP32 polls, executes, then marks `executed:true`. No WebSocket or persistent connection needed. **VOC decay dashboard** — once the BME680 arrives, plot gas resistance with spray markers, compute a "freshness index" (0–100 %, normalised resistance recovery), and estimate re-spray time from a fitted first-order exponential: C(t) = C_max · e^(−k·t).
 
 <a id="pir-sensor" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 <a id="atomizer-test" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
@@ -222,38 +316,24 @@ The KiCAD schematic was revised to reflect this week's hardware changes:
 
 <!-- IMAGE: updated KiCAD schematic (export pending) -->
 
-<a id="firebase" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
+## 5. Budget Update
 
-## 5. Firebase Integration
-
-With the voice pipeline validated, we connected the ESP32 to **Firebase Realtime Database** to log spray events over Wi-Fi — laying the groundwork for a companion app and remote monitoring.
-
-### Architecture
-
-| Layer | Implementation |
-|-------|---------------|
-| Auth | Email/password fixed test account — same credentials every reboot, no anonymous user accumulation |
-| Time | NTP sync via `pool.ntp.org` at boot; UTC Unix timestamp + ISO 8601 string per event |
-| Push | `Firebase.RTDB.pushJSON()` → `/spray_events/<auto_id>` on every "Spray" detection |
-| Decoupling | SR task (Core 1) → FreeRTOS queue → loop() (Core 0) → Firebase push; voice pipeline never blocks on network I/O |
-
-### Event Schema
-
-Each spray event written to `/spray_events`:
-
-```json
-{
-  "command": "spray",
-  "unixMs": 1776658120000,
-  "iso": "2026-04-19T21:08:40Z"
-}
-```
-
-### End-to-end Demo
-
-Say **"Aura"** → say **"Spray"** within the 7-second window → LED lights, atomizer fires, and a new record appears in the Firebase Realtime Database console in real time.
-
-The Firebase client library (`Firebase_ESP_Client` by Mobizt) runs entirely on Core 0 alongside the main loop, keeping the ESP-SR audio processing on Core 1 uninterrupted.
+| Item | Qty | Unit Price | Total |
+|------|-----|-----------|-------|
+| Seeed Studio XIAO ESP32-S3 | 2 | $7.49 | $14.98 |
+| Adafruit BME680 | 1 | $18.95 | $18.95 |
+| Adafruit MOSFET Driver | 1 | $3.95 | $3.95 |
+| Mini Water Pump | 4 | $2.36 | $9.43 |
+| 3.7V 2000mAh LiPo Battery | 1 | $13.06 | $13.06 |
+| INMP441 Microphone Module | 3 | $3.20 | $9.59 |
+| Adafruit I2S MEMS Microphone Breakout | 1 | $13.72 | $13.72 |
+| DC-DC Step Up Boost Converter | 5 | $1.19 | $5.95 |
+| Dupont Jumper Wires (120pcs) | 1 | $6.88 | $6.88 |
+| Ultrasonic Mist Maker Ceramics Discs | 6 | $1.17 | $6.99 |
+| USB Atomization Drive Circuit Board | 4 | $2.37 | $9.48 |
+| **Total Spent** | | | **$113.98** |
+| **Total Budget** | | | **$350.00** |
+| **Remaining** | | | **$236.02** |
 
 ## Next Steps
 
