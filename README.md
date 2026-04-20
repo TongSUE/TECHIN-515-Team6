@@ -45,6 +45,7 @@ Web/                          ← git root (this repo)
 │   ├── VoiceTest/            ← ESP-SR voice recognition prototype
 │   ├── FirebaseTest/         ← VoiceTest + Firebase Realtime Database
 │   ├── MicTest/              ← SPH0645 bring-up / VAD test
+│   ├── PIRTest/              ← PIR motion-triggered spray controller
 │   └── PsramTest/            ← PSRAM validation
 ├── KiCAD/AuraSync_v1/        ← schematic + PCB layout (KiCAD 9)
 ├── monitor/
