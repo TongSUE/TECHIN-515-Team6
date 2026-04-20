@@ -1,5 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowDown, Code2, FileText } from 'lucide-react'
+import { useLocale } from '../context/LocaleContext.jsx'
+import { strings } from '../i18n/strings.js'
 
 function Blobs({ reduce }) {
   if (reduce) {
@@ -57,6 +59,8 @@ const pillItem = {
 
 export default function Hero({ githubUrl }) {
   const reduce = useReducedMotion()
+  const { locale } = useLocale()
+  const s = strings[locale].hero
 
   const scrollToDevlog = () => {
     document.getElementById('devlog')?.scrollIntoView({ behavior: 'smooth' })
@@ -84,7 +88,7 @@ export default function Hero({ githubUrl }) {
           transition={{ duration: 0.5 }}
           className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-accent dark:text-accent-mint"
         >
-          Hardware × ML Lab · Devlog
+          {s.eyebrow}
         </motion.p>
         <motion.h1
           initial={{ opacity: 0, y: 12 }}
@@ -105,12 +109,11 @@ export default function Hero({ githubUrl }) {
           className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-ink-soft sm:text-xl"
         >
           <span className="text-ink dark:text-slate-200">
-            A standalone, context-aware scent dispenser for intimate home spaces.
-            VOC sensing and on-device ML read the room; a{' '}
+            {s.taglineStrong}{' '}
             <span className="font-medium text-ink dark:text-slate-100">
-              chemical feedback loop
+              {s.taglineEmphasis}
             </span>{' '}
-            blocks runaway over-spraying that dumb timed dispensers cannot prevent.
+            {s.taglineTail}
           </span>
         </motion.p>
 
@@ -119,13 +122,9 @@ export default function Hero({ githubUrl }) {
           initial="hidden"
           animate="show"
           className="mx-auto mt-6 flex max-w-lg list-none flex-wrap justify-center gap-2 text-xs font-medium text-ink-soft"
-          aria-label="Project highlights"
+          aria-label={s.pillsAriaLabel}
         >
-          {[
-            'Chemical feedback loop',
-            'BME680 + I2S multimodal',
-            'Voice · button · auto',
-          ].map((label) => (
+          {s.pills.map((label) => (
             <motion.li key={label} variants={pillItem}>
               <span
                 className={`inline-block rounded-full border border-slate-200/90 bg-white/70 px-3 py-1 text-ink/85 shadow-sm backdrop-blur transition-[transform,box-shadow] will-change-transform dark:border-slate-600/80 dark:bg-slate-800/50 dark:text-slate-200 ${
@@ -154,7 +153,7 @@ export default function Hero({ githubUrl }) {
             className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-medium text-white shadow-lg shadow-slate-900/15 outline-none ring-offset-2 transition-colors hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-accent dark:bg-white dark:text-slate-900 dark:shadow-white/10 dark:hover:bg-slate-100 dark:focus-visible:ring-accent-mint dark:ring-offset-slate-900"
           >
             <FileText className="h-4 w-4 opacity-90" strokeWidth={2.25} aria-hidden />
-            Read devlog
+            {s.readDevlog}
           </motion.button>
           <motion.a
             href={githubUrl}
@@ -165,7 +164,7 @@ export default function Hero({ githubUrl }) {
             className="inline-flex items-center gap-2 rounded-full border border-slate-300/90 bg-white/80 px-6 py-3 text-sm font-medium text-ink shadow-sm backdrop-blur outline-none ring-offset-2 transition-colors hover:border-accent/35 hover:text-accent focus-visible:ring-2 focus-visible:ring-accent dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-100 dark:hover:border-accent-mint/40 dark:hover:text-accent-mint dark:ring-offset-slate-900 dark:focus-visible:ring-accent-mint"
           >
             <Code2 className="h-4 w-4 opacity-90" strokeWidth={2.25} aria-hidden />
-            View GitHub repo
+            {s.viewGithub}
           </motion.a>
         </motion.div>
 
@@ -176,15 +175,15 @@ export default function Hero({ githubUrl }) {
           className="mt-14 flex flex-col items-center gap-1"
         >
           <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft">
-            Explore
+            {s.explore}
           </span>
           <button
             type="button"
             onClick={scrollToVision}
             className="group flex flex-col items-center gap-0.5 rounded-xl px-4 py-2 text-ink-soft outline-none transition hover:text-accent focus-visible:ring-2 focus-visible:ring-accent dark:hover:text-accent-mint dark:focus-visible:ring-accent-mint"
-            aria-label="Scroll to vision section"
+            aria-label={s.scrollToVision}
           >
-            <span className="text-xs">How it works</span>
+            <span className="text-xs">{s.howItWorks}</span>
             <motion.span
               aria-hidden
               className="inline-block"

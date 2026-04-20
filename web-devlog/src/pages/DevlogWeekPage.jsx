@@ -18,6 +18,8 @@ import {
   splitNotesPanelBlock,
 } from '../utils/devlogDocUtils.js'
 import { resolveAssetUrl } from '../utils/resolveAssetUrl.js'
+import { useLocale } from '../context/LocaleContext.jsx'
+import { strings } from '../i18n/strings.js'
 
 const statusStyles = {
   Blocking:
@@ -41,21 +43,23 @@ function scrollToDevlogSection() {
 
 export default function DevlogWeekPage() {
   const { week } = useParams()
-  const entry = getDevlogWeekByNumber(week)
+  const { locale } = useLocale()
+  const sw = strings[locale].week
+  const entry = getDevlogWeekByNumber(week, locale)
   const carry = useMemo(() => {
     const n = Number(week)
     if (!Number.isFinite(n)) return null
-    return getCarryoverTasksForWeek(n, getDevlogWeeks())
-  }, [week])
+    return getCarryoverTasksForWeek(n, getDevlogWeeks(locale))
+  }, [week, locale])
 
   const { prevWeek, nextWeek } = useMemo(() => {
-    const all = getDevlogWeeks()
+    const all = getDevlogWeeks(locale)
     const n = entry?.week
     return {
       prevWeek: all.find((w) => w.week === n - 1) ?? null,
       nextWeek: all.find((w) => w.week === n + 1) ?? null,
     }
-  }, [entry])
+  }, [entry, locale])
 
   const { tocItems, executiveBody, notesBody, notesPanelTitle, mainBody, nextStepsBody } = useMemo(() => {
     const body = entry?.body?.trim() ? entry.body : ''
@@ -89,31 +93,30 @@ export default function DevlogWeekPage() {
     }
   }, [entry])
 
+  const [tocDrawerOpen, setTocDrawerOpen] = useState(false)
+
   if (!entry) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-28 sm:px-10">
         <p className="text-sm font-semibold text-accent dark:text-accent-mint">
-          Devlog
+          {sw.errorEyebrow}
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-ink dark:text-slate-50">
-          Week not found
+          {sw.errorTitle}
         </h1>
         <p className="mt-3 text-sm text-ink-soft">
-          There is no entry for week {week}. Return to the timeline and pick
-          another card.
+          {sw.errorBody(week)}
         </p>
         <Link
           to="/"
           onClick={scrollToDevlogSection}
           className="mt-6 inline-flex rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
         >
-          Back to timeline
+          {sw.errorBack}
         </Link>
       </div>
     )
   }
-
-  const [tocDrawerOpen, setTocDrawerOpen] = useState(false)
 
   const status = entry.status
   const statusClass =
@@ -133,12 +136,12 @@ export default function DevlogWeekPage() {
           onClick={scrollToDevlogSection}
           className="inline-flex items-center gap-1 text-sm font-medium text-accent transition hover:text-accent/80 dark:text-accent-mint dark:hover:text-accent-mint/85"
         >
-          ← Back to timeline
+          {sw.backToTimeline}
         </Link>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-slate-900/5 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/10 dark:text-slate-300">
-            Week {entry.week}
+            {sw.weekLabel(entry.week)}
             {entry.date ? ` · ${entry.date}` : ''}
           </span>
           <span
@@ -186,7 +189,7 @@ export default function DevlogWeekPage() {
                   className="scroll-mt-28 rounded-2xl border-2 border-amber-400/55 bg-gradient-to-br from-amber-50/95 via-white to-yellow-50/90 p-6 shadow-glass-lg dark:border-amber-500/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 sm:p-8"
                 >
                   <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-300">
-                    Notes · {notesPanelLabel}
+                    {sw.notesPrefix}{notesPanelLabel}
                   </p>
                   <DevlogMarkdownBody markdown={notesBody} />
                 </section>
@@ -199,7 +202,7 @@ export default function DevlogWeekPage() {
                   className="scroll-mt-28 rounded-2xl border-2 border-sky-400/50 bg-gradient-to-br from-sky-50/95 via-white to-indigo-50/80 p-6 shadow-glass-lg dark:border-sky-500/35 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 sm:p-8"
                 >
                   <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-800 dark:text-sky-300">
-                    Opening · Executive summary
+                    {sw.execLabel}
                   </p>
                   <DevlogMarkdownBody markdown={executiveBody} />
                 </section>
@@ -211,7 +214,7 @@ export default function DevlogWeekPage() {
                   id="week-main-body"
                 >
                   <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft dark:text-slate-400">
-                    Main notes
+                    {sw.mainNotes}
                   </p>
                   <DevlogMarkdownBody markdown={mainBody} />
                 </div>
@@ -224,7 +227,7 @@ export default function DevlogWeekPage() {
                   className="scroll-mt-28 rounded-2xl border-2 border-teal-400/55 bg-gradient-to-br from-teal-50/95 via-white to-sky-50/90 p-6 shadow-glass-lg dark:border-teal-500/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 sm:p-8"
                 >
                   <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-700 dark:text-accent-mint">
-                    Closing · Next steps
+                    {sw.closingLabel}
                   </p>
                   <DevlogMarkdownBody
                     markdown={nextStepsBody}
@@ -236,7 +239,7 @@ export default function DevlogWeekPage() {
               {Array.isArray(entry.images) && entry.images.length > 0 ? (
                 <div className="glass-panel rounded-2xl p-6 sm:p-10">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">
-                    Figures
+                    {sw.figures}
                   </p>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     {entry.images.map((img, i) => (
@@ -295,10 +298,10 @@ export default function DevlogWeekPage() {
                 className="glass-panel flex min-w-0 flex-1 flex-col gap-1 rounded-2xl px-5 py-4 transition hover:border-accent/40 dark:hover:border-accent-mint/40"
               >
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft dark:text-slate-400">
-                  ← Previous
+                  {sw.prevLabel}
                 </span>
                 <span className="truncate text-sm font-medium text-ink dark:text-slate-100">
-                  Week {prevWeek.week} · {prevWeek.title}
+                  {sw.weekLabel(prevWeek.week)} · {prevWeek.title}
                 </span>
               </Link>
             ) : (
@@ -310,10 +313,10 @@ export default function DevlogWeekPage() {
                 className="glass-panel flex min-w-0 flex-1 flex-col items-end gap-1 rounded-2xl px-5 py-4 text-right transition hover:border-accent/40 dark:hover:border-accent-mint/40"
               >
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft dark:text-slate-400">
-                  Next →
+                  {sw.nextLabel}
                 </span>
                 <span className="truncate text-sm font-medium text-ink dark:text-slate-100">
-                  Week {nextWeek.week} · {nextWeek.title}
+                  {sw.weekLabel(nextWeek.week)} · {nextWeek.title}
                 </span>
               </Link>
             ) : (

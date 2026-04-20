@@ -1,29 +1,9 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { Activity, BrainCircuit, Droplets } from 'lucide-react'
+import { useLocale } from '../context/LocaleContext.jsx'
+import { strings } from '../i18n/strings.js'
 
-const steps = [
-  {
-    title: 'Sensing',
-    body:
-      'BME680 supplies VOC and climate gradients; the I2S mic adds acoustic features. We prioritize trends over absolute values so each room can establish its own baseline.',
-    tag: 'Input',
-    Icon: Activity,
-  },
-  {
-    title: 'Edge ML',
-    body:
-      'On the XIAO ESP32-S3, a ~30s sliding window fuses modalities for a lightweight classifier. Actuation only fires on high confidence, with rules to suppress false alarms (e.g., hairspray + dryer).',
-    tag: 'Think',
-    Icon: BrainCircuit,
-  },
-  {
-    title: 'Actuation',
-    body:
-      'After spray, a VOC spike forces Cooldown—voice and button requests are rejected until the air clears, preventing scent overload. We are evaluating ultrasonic atomizers for finer misting.',
-    tag: 'Output',
-    Icon: Droplets,
-  },
-]
+const ICONS = [Activity, BrainCircuit, Droplets]
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },
@@ -36,6 +16,9 @@ const cardVariants = {
 
 export default function Vision() {
   const reduce = useReducedMotion()
+  const { locale } = useLocale()
+  const sv = strings[locale].vision
+  const steps = sv.cards.map((c, i) => ({ ...c, Icon: ICONS[i] }))
 
   return (
     <section
@@ -45,16 +28,13 @@ export default function Vision() {
       <div className="mx-auto max-w-5xl">
         <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent dark:text-accent-mint">
           <span className="inline-block h-px w-6 bg-accent/50 dark:bg-accent-mint/50" aria-hidden />
-          The vision
+          {sv.eyebrow}
         </p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink dark:text-slate-50 sm:text-4xl">
-          Sense, infer, actuate — one closed loop
+          {sv.heading}
         </h2>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
-          AuraSync turns bathroom-scale context (odor, shower steam, grooming noise)
-          into actionable signals: inference stays on-device, and chemical feedback
-          keeps spraying within safe bounds. Week-by-week detail lives in the devlog
-          below.
+          {sv.intro}
         </p>
 
         <div className="mt-12 grid gap-5 md:grid-cols-3">
@@ -133,13 +113,10 @@ export default function Vision() {
             aria-hidden
           />
           <p className="relative text-sm font-semibold text-ink dark:text-slate-100">
-            Why a chemical feedback loop?
+            {sv.calloutTitle}
           </p>
           <p className="relative mt-2 max-w-3xl text-sm leading-relaxed text-ink-soft">
-            Timed dispensers cannot tell when the air is already saturated. After a
-            spray we watch for a VOC spike and enter Cooldown until readings return
-            to baseline — a hardware-friendly interlock that matches our Week 1
-            functional architecture diagram.
+            {sv.calloutBody}
           </p>
         </motion.div>
       </div>

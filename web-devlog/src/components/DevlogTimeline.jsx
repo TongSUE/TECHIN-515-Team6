@@ -5,8 +5,8 @@ import { Link } from 'react-router-dom'
 import DevlogCarryoverChecklist from './DevlogCarryoverChecklist.jsx'
 import DevlogCredits from './DevlogCredits.jsx'
 import { getCarryoverTasksForWeek } from '../utils/loadDevlog.js'
-
-const FILTERS = ['All', 'In Progress', 'Completed']
+import { useLocale } from '../context/LocaleContext.jsx'
+import { strings } from '../i18n/strings.js'
 
 const statusStyles = {
   Blocking:
@@ -24,6 +24,15 @@ const defaultStatusClass =
 
 export default function DevlogTimeline({ weeks }) {
   const reduce = useReducedMotion()
+  const { locale } = useLocale()
+  const st = strings[locale].timeline
+  const sw = strings[locale].week
+
+  const FILTERS = [
+    { key: 'All', label: st.filterAll },
+    { key: 'In Progress', label: st.filterInProgress },
+    { key: 'Completed', label: st.filterCompleted },
+  ]
   const [filter, setFilter] = useState('All')
 
   const filteredWeeks =
@@ -36,34 +45,31 @@ export default function DevlogTimeline({ weeks }) {
     >
       <div className="mx-auto max-w-5xl">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent dark:text-accent-mint">
-          Weekly Devlog
+          {st.eyebrow}
         </p>
         <h2 className="mt-3 flex flex-wrap items-center gap-3 text-3xl font-semibold tracking-tight text-ink dark:text-slate-50 sm:text-4xl">
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/12 text-accent dark:bg-accent-mint/15 dark:text-accent-mint">
             <BookOpen className="h-5 w-5" strokeWidth={2.25} aria-hidden />
           </span>
-          <span>Build log, week by week</span>
+          <span>{st.heading}</span>
         </h2>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-soft">
-          A running record of how AuraSync gets built — hardware decisions,
-          firmware milestones, CAD iterations, and ML experiments, one week at a
-          time. Each card is a quick summary; click in for schematics, code
-          walkthroughs, and the full design rationale.
+          {st.intro}
         </p>
 
         {/* Filter pills */}
         <div className="mt-10 flex flex-wrap gap-2">
           {FILTERS.map((f) => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.key}
+              onClick={() => setFilter(f.key)}
               className={
-                filter === f
+                filter === f.key
                   ? 'rounded-full px-4 py-1.5 text-sm font-medium shadow-sm transition bg-slate-900 text-white dark:bg-white dark:text-slate-900'
                   : 'rounded-full border border-slate-200/80 bg-white/80 px-4 py-1.5 text-sm font-medium text-ink-soft transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-700'
               }
             >
-              {f}
+              {f.label}
             </button>
           ))}
         </div>
@@ -99,7 +105,7 @@ export default function DevlogTimeline({ weeks }) {
                 >
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-slate-900/5 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-ink-soft dark:bg-white/10 dark:text-slate-300">
-                      Week {w.week}
+                      {sw.weekLabel(w.week)}
                       {w.date ? ` · ${w.date}` : ''}
                     </span>
                     <span
@@ -143,7 +149,7 @@ export default function DevlogTimeline({ weeks }) {
                       to={`/devlog/${w.week}`}
                       className="group/btn inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:shadow-white/10 dark:hover:bg-slate-100"
                     >
-                      Open full entry
+                      {st.openEntry}
                       <span
                         aria-hidden
                         className="text-xs opacity-80 transition group-hover/btn:translate-x-0.5 group-hover/btn:opacity-100"

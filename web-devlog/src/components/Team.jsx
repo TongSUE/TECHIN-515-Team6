@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion'
+import { useLocale } from '../context/LocaleContext.jsx'
+import { strings } from '../i18n/strings.js'
 
 const GithubIcon = () => (
   <svg
@@ -12,34 +14,20 @@ const GithubIcon = () => (
   </svg>
 )
 
-const people = [
-  {
-    name: 'Yutong Luo',
-    initials: 'Y',
-    github: 'https://github.com/TongSUE',
-    role: 'Firmware · Voice · Schematic · Devlog',
-    bio: 'Leads firmware architecture and the devlog site. Built the ESP-SR wake-word pipeline, SPH0645 I2S microphone bring-up, KiCAD schematic updates, and this devlog site from scratch.',
-    weeks: [
-      { label: 'Week 1', items: ['User flow & state machine design', 'Devlog site (React + Vite)', 'System architecture'] },
-      { label: 'Week 2', items: ['KiCAD schematic & custom footprints', 'ESP32-S3 firmware skeleton', 'Pre-Flight Q&A write-up'] },
-      { label: 'Week 3', items: ['SPH0645 I2S microphone bring-up', 'ESP-SR wake-word state machine', 'Real-time Streamlit dashboard', 'Schematic update (SPH0645 + PIR + 2N2222)', 'Devlog write-up'] },
-    ],
-  },
-  {
-    name: 'Lucia Shen',
-    initials: 'L',
-    github: 'https://github.com/xtshen777',
-    role: 'Hardware · CAD · ML Research · Procurement',
-    bio: 'Drives hardware integration and physical build. Integrated the HC-SR501 PIR sensor and 2N2222 atomizer switching circuit, manages 3D enclosure prototyping, and leads milestone presentations.',
-    weeks: [
-      { label: 'Week 1', items: ['Hardware selection & BOM', 'Component procurement', 'System architecture'] },
-      { label: 'Week 2', items: ['3D enclosure prototype (CAD)', 'ML dataset survey & strategy', 'Data pipeline planning'] },
-      { label: 'Week 3', items: ['HC-SR501 PIR sensor integration', 'Ultrasonic atomizer circuit (2N2222 transistor)', 'Milestone 1 presentation slides'] },
-    ],
-  },
-]
+const GITHUB = ['https://github.com/TongSUE', 'https://github.com/xtshen777']
+const INITIALS = ['Y', 'L']
+const NAMES = ['Yutong Luo', 'Lucia Shen']
 
 export default function Team() {
+  const { locale } = useLocale()
+  const st = strings[locale].team
+  const people = st.people.map((p, i) => ({
+    ...p,
+    name: NAMES[i],
+    initials: INITIALS[i],
+    github: GITHUB[i],
+  }))
+
   return (
     <section
       id="team"
@@ -47,15 +35,13 @@ export default function Team() {
     >
       <div className="mx-auto max-w-5xl">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent dark:text-accent-mint">
-          The Team
+          {st.eyebrow}
         </p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink dark:text-slate-50 sm:text-4xl">
-          Who is building AuraSync
+          {st.heading}
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-soft">
-          Two people, one project. Responsibilities overlap by design — both
-          contribute to architecture decisions and review each other's work every
-          week.
+          {st.intro}
         </p>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2">

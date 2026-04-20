@@ -44,7 +44,7 @@ export function splitExecutiveSummary(markdown) {
   const lines = markdown.split(/\r?\n/)
   let start = -1
   for (let i = 0; i < lines.length; i++) {
-    if (/^##\s+.*Executive Summary\s*$/i.test(lines[i].trim())) {
+    if (/^##\s+.*(Executive Summary|执行摘要)\s*$/i.test(lines[i].trim())) {
       start = i
       break
     }
@@ -81,7 +81,7 @@ export function splitNotesPanelBlock(markdown) {
   for (let i = 0; i < lines.length; i++) {
     const t = lines[i].trim()
     if (!/^##\s+/.test(t)) continue
-    if (/pre[-\s]?flight/i.test(t) || /^##\s+notes?\b/i.test(t) || /mentor/i.test(t)) { start = i; break }
+    if (/pre[-\s]?flight/i.test(t) || /^##\s+notes?\b/i.test(t) || /mentor/i.test(t) || /导师|备注/i.test(t)) { start = i; break }
   }
   if (start === -1) {
     return { main: markdown.trim(), notesPanel: null, notesPanelTitle: null }
@@ -165,7 +165,7 @@ export function splitNextStepsBlock(markdown) {
   for (let i = 0; i < lines.length; i++) {
     const t = lines[i].trim()
     if (!/^#{2,3}\s+/i.test(t)) continue
-    if (!/next\s+steps?/i.test(t)) continue
+    if (!/next\s+steps?/i.test(t) && !/后续计划|下一步/i.test(t)) continue
     splitAt = i
     break
   }

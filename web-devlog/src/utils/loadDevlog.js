@@ -7,6 +7,11 @@ const mdModules = import.meta.glob('../content/devlog/*.md', {
   import: 'default',
 })
 
+// Pre-build a set of week numbers that have a .zh.md file, for fallback logic
+const zhPaths = new Set(
+  Object.keys(mdModules).filter((p) => p.endsWith('.zh.md')),
+)
+
 function parseFrontmatter(raw) {
   const text = typeof raw === 'string' ? raw : ''
   if (!text.startsWith('---')) {
@@ -131,28 +136,43 @@ function normalizeCredits(raw) {
   })
 }
 
-function weeksFromMarkdown() {
-  const rows = []
-  for (const path of Object.keys(mdModules)) {
-    const raw = mdModules[path]
+function buildWeekEntry(data, content) {
+  return {
+    week: Number(data.week),
+    date: data.date ?? undefined,
+    title: data.title ?? 'Untitled week',
+    status: data.status ?? 'Testing',
+    summary: buildCardSummary(data, content),
+    body: content,
+    images: Array.isArray(data.images) ? data.images : [],
+    credits: normalizeCredits(data.credits),
+    plannedNext: normalizePlannedNext(data.planned_next),
+    priorWeekProgress: normalizePriorProgress(data.prior_week_progress),
+    showNextSteps: data.show_next_steps !== false,
+  }
+}
+
+function weeksFromMarkdown(locale = 'en') {
+  // Use a Map so zh entries can override en entries for the same week number
+  const byWeek = new Map()
+  for (const [path, raw] of Object.entries(mdModules)) {
+    const isZh = path.endsWith('.zh.md')
     const { data, content } = parseFrontmatter(raw)
     const week = Number(data.week)
     if (!Number.isFinite(week)) continue
-    rows.push({
-      week,
-      date: data.date ?? undefined,
-      title: data.title ?? 'Untitled week',
-      status: data.status ?? 'Testing',
-      summary: buildCardSummary(data, content),
-      body: content,
-      images: Array.isArray(data.images) ? data.images : [],
-      credits: normalizeCredits(data.credits),
-      plannedNext: normalizePlannedNext(data.planned_next),
-      priorWeekProgress: normalizePriorProgress(data.prior_week_progress),
-      showNextSteps: data.show_next_steps !== false,
-    })
+
+    if (locale === 'en') {
+      // English mode: skip .zh.md files entirely
+      if (isZh) continue
+      byWeek.set(week, buildWeekEntry(data, content))
+    } else {
+      // Chinese mode: add English entry first (lower priority)
+      if (!isZh) byWeek.set(week, buildWeekEntry(data, content))
+      // Override with zh entry if it exists (higher priority)
+      if (isZh) byWeek.set(week, buildWeekEntry(data, content))
+    }
   }
-  return rows.sort((a, b) => b.week - a.week)
+  return Array.from(byWeek.values()).sort((a, b) => b.week - a.week)
 }
 
 function weeksFromJson() {
@@ -183,22 +203,23 @@ function weeksFromJson() {
 /**
  * Merge `src/content/devlog/*.md` with `src/data/devlog.json` → `weeks`.
  * If the same `week` exists in both, the Markdown file wins.
+ * Pass `locale='zh'` to prefer .zh.md files (falling back to .md).
  */
-export function getDevlogWeeks() {
+export function getDevlogWeeks(locale = 'en') {
   const byWeek = new Map()
   for (const w of weeksFromJson()) {
     if (Number.isFinite(w.week)) byWeek.set(w.week, w)
   }
-  for (const w of weeksFromMarkdown()) {
+  for (const w of weeksFromMarkdown(locale)) {
     if (Number.isFinite(w.week)) byWeek.set(w.week, w)
   }
   return Array.from(byWeek.values()).sort((a, b) => b.week - a.week)
 }
 
-export function getDevlogWeekByNumber(weekParam) {
+export function getDevlogWeekByNumber(weekParam, locale = 'en') {
   const n = Number(weekParam)
   if (!Number.isFinite(n)) return null
-  return getDevlogWeeks().find((w) => w.week === n) ?? null
+  return getDevlogWeeks(locale).find((w) => w.week === n) ?? null
 }
 
 export function getGithubRepoUrl() {

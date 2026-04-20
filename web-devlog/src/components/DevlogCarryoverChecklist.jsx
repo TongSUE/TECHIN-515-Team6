@@ -1,5 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { CheckCircle2, Circle, MinusCircle, ListTodo } from 'lucide-react'
+import { useLocale } from '../context/LocaleContext.jsx'
+import { strings } from '../i18n/strings.js'
 
 /**
  * Shows the previous week's planned_next tasks merged with this week's prior_week_progress.
@@ -19,6 +21,9 @@ export default function DevlogCarryoverChecklist({
   className = '',
 }) {
   const reduce = useReducedMotion()
+  const { locale } = useLocale()
+  const sc = strings[locale].carryover
+
   if (!fromWeek || !tasks?.length) return null
 
   const doneCount = tasks.filter((t) => t.done === true).length
@@ -47,11 +52,10 @@ export default function DevlogCarryoverChecklist({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-800 dark:text-violet-200/90">
-            From Week {fromWeek} plan
+            {sc.fromPlan(fromWeek)}
           </p>
           <p className="mt-1 text-xs text-ink-soft dark:text-slate-400">
-            Tasks we committed to in Week {fromWeek}. Click a task to jump to
-            its section below.
+            {sc.description(fromWeek)}
           </p>
           <ul className="mt-3 space-y-2">
             {tasks.map((t, i) => {
@@ -106,7 +110,7 @@ export default function DevlogCarryoverChecklist({
                     </button>
                     {isPartial && (
                       <span className="ml-2 inline-flex rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
-                        partial
+                        {sc.partial}
                       </span>
                     )}
                     {t.description ? (
@@ -120,9 +124,7 @@ export default function DevlogCarryoverChecklist({
             })}
           </ul>
           <p className="mt-3 text-[11px] font-medium text-violet-700/80 dark:text-violet-300/70">
-            {doneCount} done
-            {partialCount > 0 ? ` · ${partialCount} partial` : ''}
-            {' '}/ {tasks.length} total · Week {currentWeek ?? '?'}
+            {sc.summary(doneCount, partialCount, tasks.length, currentWeek)}
           </p>
         </div>
       </div>

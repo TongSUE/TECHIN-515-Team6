@@ -9,6 +9,8 @@ import Team from './components/Team.jsx'
 import Vision from './components/Vision.jsx'
 import DevlogWeekPage from './pages/DevlogWeekPage.jsx'
 import { getDevlogWeeks, getGithubRepoUrl } from './utils/loadDevlog.js'
+import { LocaleProvider, useLocale } from './context/LocaleContext.jsx'
+import { strings } from './i18n/strings.js'
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => {
@@ -31,6 +33,8 @@ function useDarkMode() {
 function AppShell() {
   const [dark, toggleTheme] = useDarkMode()
   const location = useLocation()
+  const { locale } = useLocale()
+  const s = strings[locale]
 
   return (
     <div className="min-h-svh">
@@ -47,14 +51,15 @@ function AppShell() {
         </motion.div>
       </AnimatePresence>
       <footer className="border-t border-slate-200/80 bg-slate-50 py-10 text-center text-xs text-ink-soft dark:border-slate-800 dark:bg-slate-900/50">
-        © {new Date().getFullYear()} AuraSync — student project devlog.
+        {s.footer(new Date().getFullYear())}
       </footer>
     </div>
   )
 }
 
 function HomePage() {
-  const weeks = useMemo(() => getDevlogWeeks(), [])
+  const { locale } = useLocale()
+  const weeks = useMemo(() => getDevlogWeeks(locale), [locale])
   const githubUrl = useMemo(() => getGithubRepoUrl(), [])
 
   return (
@@ -71,13 +76,15 @@ function HomePage() {
 
 export default function App() {
   return (
-    <HashRouter>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/devlog/:week" element={<DevlogWeekPage />} />
-        </Route>
-      </Routes>
-    </HashRouter>
+    <LocaleProvider>
+      <HashRouter>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/devlog/:week" element={<DevlogWeekPage />} />
+          </Route>
+        </Routes>
+      </HashRouter>
+    </LocaleProvider>
   )
 }

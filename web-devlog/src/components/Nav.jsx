@@ -2,14 +2,17 @@ import { useEffect, useId, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-
-const sections = [
-  { id: 'vision', label: 'Vision' },
-  { id: 'devlog', label: 'Devlog' },
-  { id: 'team', label: 'Team' },
-]
+import { useLocale } from '../context/LocaleContext.jsx'
+import { strings } from '../i18n/strings.js'
 
 export default function Nav({ dark, onToggleTheme }) {
+  const { locale, toggle: toggleLocale } = useLocale()
+  const s = strings[locale].nav
+  const sections = [
+    { id: 'vision', label: s.vision },
+    { id: 'devlog', label: s.devlog },
+    { id: 'team', label: s.team },
+  ]
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -85,7 +88,7 @@ export default function Nav({ dark, onToggleTheme }) {
               onClick={() => setMenuOpen((o) => !o)}
             >
               <span className="sr-only">
-                {menuOpen ? 'Close menu' : 'Open menu'}
+                {menuOpen ? s.closeMenu : s.openMenu}
               </span>
               <svg
                 className="h-5 w-5"
@@ -109,11 +112,19 @@ export default function Nav({ dark, onToggleTheme }) {
             </button>
             <button
               type="button"
+              onClick={toggleLocale}
+              className="rounded-lg border border-slate-200/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-ink shadow-sm transition hover:border-accent/40 hover:text-accent dark:border-slate-600 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:border-accent-mint/50 dark:hover:text-accent-mint"
+              aria-label={locale === 'en' ? 'Switch to Chinese' : '切换为英文'}
+            >
+              {s.langToggle}
+            </button>
+            <button
+              type="button"
               onClick={onToggleTheme}
               className="rounded-lg border border-slate-200/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-ink shadow-sm transition hover:border-accent/40 hover:text-accent dark:border-slate-600 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:border-accent-mint/50 dark:hover:text-accent-mint"
               aria-pressed={dark}
             >
-              {dark ? 'Light' : 'Dark'}
+              {dark ? s.light : s.dark}
             </button>
           </div>
         </div>

@@ -1,3 +1,6 @@
+import { useLocale } from '../context/LocaleContext.jsx'
+import { strings } from '../i18n/strings.js'
+
 function tagsForMember(c) {
   if (Array.isArray(c.tags) && c.tags.length > 0) return c.tags
   if (typeof c.role === 'string' && c.role.trim()) {
@@ -10,6 +13,9 @@ function tagsForMember(c) {
 }
 
 export default function DevlogCredits({ credits, size = 'md' }) {
+  const { locale } = useLocale()
+  const sc = strings[locale].credits
+
   if (!Array.isArray(credits) || credits.length === 0) return null
 
   const isSm = size === 'sm'
@@ -17,11 +23,11 @@ export default function DevlogCredits({ credits, size = 'md' }) {
   const nameCls = isSm ? 'text-sm' : 'text-base'
 
   return (
-    <div className="flex flex-col gap-2" aria-label="Credits">
+    <div className="flex flex-col gap-2" aria-label={sc.label}>
       <span
         className={`font-medium uppercase tracking-wide text-ink-soft ${isSm ? 'text-[10px]' : 'text-[11px]'}`}
       >
-        Credits
+        {sc.label}
       </span>
       <ul className="flex list-none flex-col gap-4 p-0">
         {credits.map((c, i) => {
