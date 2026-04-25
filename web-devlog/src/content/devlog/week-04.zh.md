@@ -114,6 +114,8 @@ bme.setGasHeater(320, 150);  // 320 °C，150 ms——VOC 测量所必需
 
 在 PIR、语音识别、Firebase 分别在三个独立草图（`PIRTest`、`VoiceTest`、`FirebaseTest`）中完成验证之后，本周固件目标是将三者合并为单一草图：`Code/AuraSync/AuraSync.ino`。
 
+![PIR、INMP441 麦克风、XIAO ESP32-S3 与超声波雾化器集成在面包板上——Firebase 喷雾事件实时记录中](images/devlog/firebase_pir_voice_atomizer.png "联调测试实物：三条硬件路径（PIR、语音、雾化器）同时运行，后台 Firebase 控制台实时接收喷雾事件")
+
 ### 架构
 
 VoiceTest 的双核分配方案得以保留并扩展：

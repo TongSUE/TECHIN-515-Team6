@@ -8,6 +8,12 @@
 
 ---
 
+![AuraSync hardware — PIR, INMP441 mic, XIAO ESP32-S3 and ultrasonic atomizer integrated on breadboard with Firebase serial monitor](web-devlog/public/images/devlog/firebase_pir_voice_atomizer.png)
+
+*Integrated test setup: PIR + INMP441 mic + XIAO ESP32-S3 + ultrasonic atomizer, with Firebase spray events logging live in the background.*
+
+---
+
 ## Hardware
 
 | Component | Role |
@@ -15,7 +21,7 @@
 | Seeed XIAO ESP32-S3 | MCU — dual-core, 8 MB PSRAM, native I2S |
 | Adafruit SPH0645LM4H | I2S MEMS microphone — voice recognition |
 | HC-SR501 PIR | Presence detection — triggers actuation |
-| Adafruit BME680 *(in transit)* | Temp / humidity / pressure / VOC (I2C) |
+| Adafruit BME680 | Temp / humidity / pressure / VOC (I2C 0x77) |
 | Ultrasonic atomizer + 2N2222 NPN | Fragrance mist actuation |
 | MT3608 boost converter + 3.7 V LiPo | Power supply |
 
@@ -29,10 +35,11 @@
 | I2S LRCLK (SPH0645) | D9 | 8 |
 | I2S DOUT (SPH0645) | D10 | 9 |
 | PIR signal (HC-SR501) | — | 4 |
-| Atomizer transistor base | — | 5 |
+| Atomizer MOSFET gate | — | 5 |
 | Status LED | D0 | 21 |
 
-> SPH0645: SEL pin → GND (left channel). Data in bits [31:14] of 32-bit I2S frame.
+> SPH0645: SEL pin → GND (left channel). Data in bits [31:14] of 32-bit I2S frame.  
+> BME680: use `Wire.begin()` with no arguments — the framework maps D4/D5 by default.
 
 ---
 
@@ -41,11 +48,12 @@
 ```
 Web/                          ← git root (this repo)
 ├── Code/
-│   ├── AuraSync/             ← main firmware (state machine)
+│   ├── AuraSync/             ← main firmware (two-layer state machine)
 │   ├── VoiceTest/            ← ESP-SR voice recognition prototype
 │   ├── FirebaseTest/         ← VoiceTest + Firebase Realtime Database
 │   ├── MicTest/              ← SPH0645 bring-up / VAD test
 │   ├── PIRTest/              ← PIR motion-triggered spray controller
+│   ├── AtomizerTest/         ← serial 1/0 → D2 HIGH/LOW bare atomizer test
 │   └── PsramTest/            ← PSRAM validation
 ├── KiCAD/AuraSync_v1/        ← schematic + PCB layout (KiCAD 9)
 ├── monitor/
@@ -58,11 +66,24 @@ Web/                          ← git root (this repo)
 
 ---
 
+## Flashing AuraSync (Main Firmware)
+
+1. Open `Code/AuraSync/AuraSync.ino` in Arduino IDE
+2. **Tools → Board:** Seeed XIAO ESP32-S3
+3. **Tools → PSRAM:** OPI PSRAM
+4. **Tools → Partition Scheme:** Huge APP (3MB No OTA / 1MB SPIFFS)
+5. Copy `Code/AuraSync/partitions.csv` into the sketch folder (already present)
+6. Run `Code/VoiceTest/flash_model.ps1` **once** to write ESP-SR models to flash
+7. Upload `AuraSync.ino`
+8. Say **"Aura"** to open the 7-second command window, then **"Spray"** or **"Stop"**; PIR presence for ≥ 3 s also triggers spray
+
+---
+
 ## Running the Serial Voice Monitor
 
 Streams live audio level and recognised commands from the ESP32-S3 over USB serial.
 
-**Requirements:** Python 3.9+, ESP32-S3 flashed with `VoiceTest.ino` or `FirebaseTest.ino`, Arduino IDE serial monitor **closed**.
+**Requirements:** Python 3.9+, ESP32-S3 flashed with `VoiceTest.ino` or `AuraSync.ino`, Arduino IDE serial monitor **closed**.
 
 ```bash
 cd monitor
@@ -88,7 +109,7 @@ Opens at `http://localhost:8502`. Supports dark/light mode toggle; auto-refreshe
 
 ---
 
-## Flashing VoiceTest (Voice Recognition)
+## Flashing VoiceTest (Voice Recognition Prototype)
 
 1. Open `Code/VoiceTest/VoiceTest.ino` in Arduino IDE
 2. **Tools → Board:** Seeed XIAO ESP32-S3
@@ -98,21 +119,28 @@ Opens at `http://localhost:8502`. Supports dark/light mode toggle; auto-refreshe
 6. Upload `VoiceTest.ino`
 7. Say **"Aura"** to open the 7-second command window, then **"Spray"** or **"Stop"**
 
-## Flashing FirebaseTest (Voice + Firebase)
-
-Same steps as VoiceTest, but open `Code/FirebaseTest/FirebaseTest.ino`. Uses the same `partitions.csv` (app0 = 3.7 MB). On "Spray" detection, writes a timestamped event to `/spray_events` in Firebase Realtime Database.
-
 ---
 
 ## Firmware Overview
 
-### `Code/AuraSync/AuraSync.ino` — Main state machine
+### `Code/AuraSync/AuraSync.ino` — Main firmware (Week 4+)
 
-Non-blocking architecture (`millis()` only, no `delay()` in main loop):
+Two-layer state machine, non-blocking (`millis()` only, no `delay()` in main loop):
 
+**Layer 1 — System Mode** (PIR-driven presence):
 ```
-IDLE → ML_PROCESSING → ACTUATION (2 s pump) → COOLDOWN (60 s VOC recovery) → IDLE
+MODE_SLEEP  ──PIR detected──▶  MODE_AWAKE
+MODE_AWAKE  ──60 s no PIR──▶  MODE_SLEEP
 ```
+
+**Layer 2 — Spray State** (shared absolute cooldown):
+```
+SPRAY_IDLE → SPRAY_SPRAYING (5 s) → SPRAY_COOLDOWN (20 s test / 3 min prod) → SPRAY_IDLE
+```
+
+Four-priority trigger model: P1 voice/app (bypasses cooldown, works in SLEEP) → P2 extreme VOC < 10 kΩ (works in SLEEP, queues during cooldown) → P3 PIR + VOC inflection (AWAKE + IDLE only).
+
+FreeRTOS dual-core: I2S + ESP-SR on Core 1 at max priority; PIR, state machine, Firebase, BME680 on Core 0. Power saving: `WiFi.setSleep(WIFI_PS_MAX_MODEM)` + Core 0 throttle in SLEEP mode (~30 mA idle from 2000 mAh LiPo ≈ 60–70 h).
 
 ### `Code/VoiceTest/VoiceTest.ino` — Voice recognition prototype
 

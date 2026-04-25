@@ -132,6 +132,8 @@ bme.setGasHeater(320, 150);  // 320 °C, 150 ms — required for VOC measurement
 
 With PIR, voice recognition, and Firebase individually validated across three separate sketches (`PIRTest`, `VoiceTest`, `FirebaseTest`), this week's firmware goal was merging all three into a single sketch: `Code/AuraSync/AuraSync.ino`.
 
+![PIR, INMP441 mic, XIAO ESP32-S3 and ultrasonic atomizer integrated on breadboard — Firebase spray events logging live](images/devlog/firebase_pir_voice_atomizer.png "Integrated test setup: all three hardware paths (PIR, voice, atomizer) active on a single board, Firebase console open in background")
+
 ### Architecture
 
 The dual-core split from VoiceTest is retained and extended:
