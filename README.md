@@ -8,12 +8,6 @@
 
 ---
 
-![AuraSync hardware — PIR, INMP441 mic, XIAO ESP32-S3 and ultrasonic atomizer integrated on breadboard with Firebase serial monitor](web-devlog/public/images/devlog/firebase_pir_voice_atomizer.png)
-
-*Integrated test setup: PIR + INMP441 mic + XIAO ESP32-S3 + ultrasonic atomizer, with Firebase spray events logging live in the background.*
-
----
-
 ## Hardware
 
 | Component | Role |
