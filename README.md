@@ -43,15 +43,18 @@
 Web/                          ← git root (this repo)
 ├── Code/
 │   ├── AuraSync/             ← main firmware (two-layer state machine)
+│   │   ├── AuraSync.ino
+│   │   ├── partitions.csv    ← custom flash layout (app0 3.7 MB + model SPIFFS 4.25 MB)
+│   │   └── secrets.h.example ← copy to secrets.h and fill in credentials
 │   ├── VoiceTest/            ← ESP-SR voice recognition prototype
+│   │   └── voice_monitor.html← Web Serial browser monitor
 │   ├── FirebaseTest/         ← VoiceTest + Firebase Realtime Database
 │   ├── MicTest/              ← SPH0645 bring-up / VAD test
 │   ├── PIRTest/              ← PIR motion-triggered spray controller
-│   ├── AtomizerTest/         ← serial 1/0 → D2 HIGH/LOW bare atomizer test
 │   └── PsramTest/            ← PSRAM validation
 ├── KiCAD/AuraSync_v1/        ← schematic + PCB layout (KiCAD 9)
 ├── monitor/
-│   ├── voice_monitor.py      ← real-time serial monitor (USB)
+│   ├── voice_monitor.py      ← real-time serial monitor (USB, Streamlit)
 │   ├── firebase_dashboard.py ← cloud dashboard (reads Firebase, no USB needed)
 │   └── requirements.txt
 ├── web-devlog/               ← React + Vite devlog site
@@ -62,11 +65,11 @@ Web/                          ← git root (this repo)
 
 ## Flashing AuraSync (Main Firmware)
 
-1. Open `Code/AuraSync/AuraSync.ino` in Arduino IDE
-2. **Tools → Board:** Seeed XIAO ESP32-S3
-3. **Tools → PSRAM:** OPI PSRAM
-4. **Tools → Partition Scheme:** Huge APP (3MB No OTA / 1MB SPIFFS)
-5. Copy `Code/AuraSync/partitions.csv` into the sketch folder (already present)
+1. Copy `Code/AuraSync/secrets.h.example` → `Code/AuraSync/secrets.h` and fill in your WiFi + Firebase credentials
+2. Open `Code/AuraSync/AuraSync.ino` in Arduino IDE
+3. **Tools → Board:** Seeed XIAO ESP32-S3
+4. **Tools → PSRAM:** OPI PSRAM
+5. **Tools → Partition Scheme:** Huge APP (3MB No OTA / 1MB SPIFFS)
 6. Run `Code/VoiceTest/flash_model.ps1` **once** to write ESP-SR models to flash
 7. Upload `AuraSync.ino`
 8. Say **"Aura"** to open the 7-second command window, then **"Spray"** or **"Stop"**; PIR presence for ≥ 3 s also triggers spray

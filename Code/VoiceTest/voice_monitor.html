@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>INMP441 Voice Monitor</title>
+<style>
+  body { font-family: monospace; background: #1a1a2e; color: #eee; margin: 20px; }
+  h2   { color: #00d4ff; }
+  button {
+    padding: 10px 24px; margin: 6px; border: none; border-radius: 6px;
+    font-size: 15px; cursor: pointer;
+  }
+  #btnConnect    { background: #00d4ff; color: #000; }
+  #btnDisconnect { background: #ff4444; color: #fff; display:none; }
+  #status { margin: 12px 0; font-size: 14px; color: #aaa; }
+
+  /* 音量条 */
+  #barWrap { background: #0d0d1a; border-radius: 8px; padding: 16px; margin: 16px 0; }
+  #label   { font-size: 13px; color: #aaa; margin-bottom: 6px; }
+  #bar     { height: 36px; background: #00ff88; border-radius: 4px; width: 0%;
+             transition: width 0.08s, background 0.08s; }
+  #peakVal { font-size: 28px; font-weight: bold; color: #00ff88; margin: 8px 0; }
+
+  /* VAD 指示灯 */
+  #vadBox  { display:inline-block; padding: 8px 20px; border-radius: 20px;
+             font-size: 14px; margin-top: 8px; background: #333; }
+  #vadBox.speech  { background: #00aa44; color: #fff; }
+  #vadBox.silence { background: #333;    color: #aaa; }
+
+  /* canvas 波形 */
+  canvas   { display: block; background: #0d0d1a; border-radius: 8px; margin-top: 16px; }
+
+  /* 串口日志 */
+  #log     { background: #0d0d1a; border-radius: 8px; padding: 12px; height: 200px;
+             overflow-y: auto; font-size: 12px; line-height: 1.6; margin-top: 16px; }
+  .detect  { color: #ffd700; font-weight: bold; }
+  .vad     { color: #00ff88; }
+  .raw     { color: #888; }
+  .err     { color: #ff6666; }
+</style>
+</head>
+<body>
+
+<h2>🎙 INMP441 Voice Monitor</h2>
+
+<button id="btnConnect">连接 ESP32 (Web Serial)</button>
+<button id="btnDisconnect">断开连接</button>
+<div id="status">未连接。请点击"连接"，然后选择 XIAO ESP32-S3 的串口。</div>
+
+<div id="barWrap">
+  <div id="label">I2S 原始峰值（说话时应 &gt; 5000）</div>
+  <div id="bar"></div>
+  <div id="peakVal">0</div>
+  <div id="vadBox" class="silence">VAD: silence</div>
+</div>
+
+<canvas id="canvas" width="700" height="120"></canvas>
+
+<div id="log"><span class="raw">等待串口数据...</span></div>
+
+<script>
+const MAX_PEAK = 300000;   // 峰值量程（调整以适应你的信号）
+const HISTORY  = 150;      // 波形历史帧数
+
+let port, reader, readLoop;
+let history = new Array(HISTORY).fill(0);
+
+const btnConnect    = document.getElementById('btnConnect');
+const btnDisconnect = document.getElementById('btnDisconnect');
+const statusEl      = document.getElementById('status');
+const barEl         = document.getElementById('bar');
+const peakValEl     = document.getElementById('peakVal');
+const vadBox        = document.getElementById('vadBox');
+const logEl         = document.getElementById('log');
+const canvas        = document.getElementById('canvas');
+const ctx           = canvas.getContext('2d');
+
+btnConnect.onclick = async () => {
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    btnConnect.style.display = 'none';
+    btnDisconnect.style.display = 'inline-block';
+    statusEl.textContent = '✅ 已连接，正在读取串口数据...';
+    startReading();
+  } catch(e) {
+    statusEl.textContent = '❌ 连接失败: ' + e.message;
+  }
+};
+
+btnDisconnect.onclick = async () => {
+  if (reader) { await reader.cancel(); }
+  if (port)   { await port.close(); }
+  btnConnect.style.display    = 'inline-block';
+  btnDisconnect.style.display = 'none';
+  statusEl.textContent = '已断开';
+};
+
+async function startReading() {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable);
+  const inputStream = decoder.readable;
+  reader = inputStream.getReader();
+
+  let buf = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      lines.forEach(processLine);
+    }
+  } catch(e) {
+    appendLog('err', '读取中断: ' + e.message);
+  }
+}
+
+function processLine(line) {
+  line = line.trim();
+  if (!line) return;
+
+  // [I2S raw] 峰值: 12345
+  const rawMatch = line.match(/\[I2S raw\].*?(\d+)/);
+  if (rawMatch) {
+    const peak = parseInt(rawMatch[1]);
+    updateBar(peak);
+    appendLog('raw', line);
+    return;
+  }
+
+  // [VAD] >>> 检测到语音
+  if (line.includes('[VAD]') && line.includes('语音')) {
+    vadBox.textContent = '🗣 VAD: SPEECH';
+    vadBox.className = 'speech';
+    appendLog('vad', line);
+    return;
+  }
+  // [VAD] --- 语音结束
+  if (line.includes('[VAD]')) {
+    vadBox.textContent = 'VAD: silence';
+    vadBox.className = 'silence';
+    appendLog('vad', line);
+    return;
+  }
+
+  // [ESP-SR] 识别
+  if (line.includes('[ESP-SR]') && line.includes('识别')) {
+    appendLog('detect', '🎯 ' + line);
+    return;
+  }
+
+  // [MIC] 音量
+  if (line.includes('[MIC]')) {
+    appendLog('raw', line);
+    return;
+  }
+
+  // 其他行（初始化日志等）
+  if (line.includes('VoiceTest') || line.includes('ESP-SR') || line.includes('WiFi') || line.includes('MultiNet')) {
+    appendLog('raw', line);
+  }
+}
+
+function updateBar(peak) {
+  // 更新历史
+  history.push(peak);
+  if (history.length > HISTORY) history.shift();
+
+  const pct = Math.min(100, (peak / MAX_PEAK) * 100);
+  barEl.style.width = pct + '%';
+  barEl.style.background = peak > 5000 ? '#00ff88' : peak > 500 ? '#ffaa00' : '#ff4444';
+  peakValEl.textContent = peak.toLocaleString();
+  peakValEl.style.color = peak > 5000 ? '#00ff88' : peak > 500 ? '#ffaa00' : '#ff4444';
+
+  drawWave();
+}
+
+function drawWave() {
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#0d0d1a';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  history.forEach((v, i) => {
+    const x = (i / HISTORY) * w;
+    const y = h - (v / MAX_PEAK) * h * 0.9 - 4;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // 5000 阈值线
+  ctx.strokeStyle = '#ff444488';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  const threshY = h - (5000 / MAX_PEAK) * h * 0.9 - 4;
+  ctx.moveTo(0, threshY); ctx.lineTo(w, threshY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#ff4444aa';
+  ctx.font = '11px monospace';
+  ctx.fillText('5000 (说话阈值)', 6, threshY - 4);
+}
+
+function appendLog(cls, text) {
+  const el = document.createElement('div');
+  el.className = cls;
+  el.textContent = text;
+  logEl.appendChild(el);
+  // 保留最近 200 行
+  while (logEl.children.length > 200) logEl.removeChild(logEl.firstChild);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// 初始画布
+drawWave();
+</script>
+</body>
+</html>
