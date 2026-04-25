@@ -18,6 +18,9 @@ import UserFlowDiagramAuraSync from './UserFlowDiagramAuraSync.jsx'
 import StateMachineDiagram from './StateMachineDiagram.jsx'
 import PIRActuationDiagram from './PIRActuationDiagram.jsx'
 import WakeWordStateMachineDiagram from './WakeWordStateMachineDiagram.jsx'
+import AuraSyncFourStateDiagram from './AuraSyncFourStateDiagram.jsx'
+import TwoLayerStateMachineDiagram from './TwoLayerStateMachineDiagram.jsx'
+import TriggerPriorityDiagram from './TriggerPriorityDiagram.jsx'
 import MentorCard from './MentorCard.jsx'
 import SpecialThanksCard from './SpecialThanksCard.jsx'
 import ImageLightbox from './ImageLightbox.jsx'
@@ -406,6 +409,15 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
       }
       if (classes.includes('wake-word-state-machine-diagram-embed')) {
         return <WakeWordStateMachineDiagram />
+      }
+      if (classes.includes('aurasync-four-state-diagram-embed')) {
+        return <AuraSyncFourStateDiagram />
+      }
+      if (classes.includes('two-layer-state-machine-diagram-embed')) {
+        return <TwoLayerStateMachineDiagram />
+      }
+      if (classes.includes('trigger-priority-diagram-embed')) {
+        return <TriggerPriorityDiagram />
       }
       if (classes.includes('mentor-card-embed')) {
         return <MentorCard />

@@ -375,7 +375,7 @@ With both hardware paths validated and the cloud pipeline live, Week 4 shifts fr
 
 | Done | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **PIR + Atomizer + Firebase End-to-End** | Highest priority — merge the two validated paths: PIR trigger → atomizer spray → Firebase event write. First full closed-loop pipeline. |
-| <input type="checkbox" /> | **Voice + PIR Unified State Machine** | Merge voice commands and PIR triggers into one state machine with defined priority (e.g. voice "stop" interrupts a PIR-triggered spray) and concurrent conflict handling. |
+| <input type="checkbox" checked /> | **PIR + Atomizer + Firebase End-to-End** | Highest priority — merge the two validated paths: PIR trigger → atomizer spray → Firebase event write. First full closed-loop pipeline. |
+| <input type="checkbox" checked /> | **Voice + PIR Unified State Machine** | Merge voice commands and PIR triggers into one state machine with defined priority (e.g. voice "stop" interrupts a PIR-triggered spray) and concurrent conflict handling. |
 | <input type="checkbox" /> | **Mobile App Framework** | Build a basic app that connects to Firebase and displays spray event history with timestamps. |
-| <input type="checkbox" /> | **BME680 Bring-up** *(if arrives)* | Validate I2C, read raw VOC / temperature / humidity, and begin collecting bathroom VOC time-series for the ML dataset. |
+| <input type="checkbox" checked /> | **BME680 Bring-up** *(if arrives)* | Validate I2C, read raw VOC / temperature / humidity, and begin collecting bathroom VOC time-series for the ML dataset. |
