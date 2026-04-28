@@ -18,11 +18,12 @@ credits:
     tags:
       - AuraSync 统一固件
       - 状态机设计
+      - 移动端应用
       - 开发日志
 prior_week_progress:
   end-to-end-integration: true
   unified-state-machine: true
-  mobile-app: false
+  mobile-app: true
   bme680-bring-up: true
 planned_next:
   - id: bme680-firmware
@@ -47,6 +48,7 @@ planned_next:
 - **AuraSync 统一固件** — Yutong 将 PIR、语音识别与 Firebase 合并至 `AuraSync.ino`——首个三条硬件路径共享同一状态机的固件版本。串口输出极简：仅打印状态转换和窗口内语音指令。
 - **省电优化** — WiFi 调制解调器休眠（DTIM 间隔射频门控）与 SLEEP 模式下的 Core 0 轮询频率限制，在不影响 Core 1 或 I2S 时钟的情况下降低了空闲电流。
 - **状态机架构** — 共同设计了双层模型：第一层（SLEEP/AWAKE，PIR 驱动）和第二层（IDLE/SPRAYING/COOLDOWN，共享绝对冷却时间）以及四优先级触发层次体系。BME680 集成进固件的工作仍在进行中。
+- **移动端应用** — Yutong 构建了基于 React Native（Expo SDK 54）的手机应用，实时读取 Firebase 喷雾历史，通过 Expo Go 在 iPhone 上运行——无需 Xcode。
 
 <a id="bme680-bring-up" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 
@@ -197,6 +199,50 @@ SR 任务以 `configMAX_PRIORITIES - 1`——FreeRTOS 最高优先级——运�
 ### P3——VOC 拐点 + PIR
 
 P3 针对如厕后场景：异味积累时 VOC 升高，到峰值后随通风开始下降。固件通过存储 8 个 BME680 采样的滚动历史（以 3 秒为间隔，覆盖约 24 秒历史数据）来检测此拐点。检测条件：最近三个读数显示气体阻抗持续下降趋势（阻抗降低 = 异味升高），当前读数出现恢复（阻抗上升）。同时要求 PIR 在过去 5 秒内检测到 HIGH 信号以确认有人存在。
+
+<a id="mobile-app" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
+
+## 4. 移动端应用——喷雾历史查看器
+
+第 3 周遗留的移动端应用框架任务本周完成。目标：构建一个可在 iOS 上演示的基础应用，读取 Firebase 喷雾事件历史——无需 Xcode，无需 Apple 开发者账号。
+
+> **范围说明：** 本阶段为端到端技术栈验证——确认 iOS 客户端能够连接 Firebase 后端并实时接收设备数据。具体功能设计（界面、控制、通知）仍在与固件开发并行推敲中。
+
+### 技术选型
+
+选择 **Expo（React Native）** 而非纯 Web 应用：通过扫描终端二维码，免费的 **Expo Go**（App Store）即可在 iPhone 上直接运行应用。JavaScript/JSX 与开发日志网站使用相同语言——无需学习新技术。Firebase JS SDK v10 在 Expo 托管工作流中无需原生模块即可运行。
+
+### 显示内容
+
+Firebase Realtime Database `/spray_events` 中的每条喷雾事件以卡片形式展示：
+
+| 字段 | 显示方式 |
+|---|---|
+| `trigger` | 图标 + 标签（🚶 Motion / 🎙️ Voice / 📱 App / 💨 VOC） |
+| `unixMs` | 日期与时间（如 Apr 25 · 09:08 PM） |
+| `duration_ms` | 持续时长（如 5.0 s） |
+
+列表按时间倒序排列。Firebase `onValue` 实时监听器使 ESP32 推送新事件后，手机端立即自动刷新——无需手动操作。
+
+### 技术栈
+
+| 层次 | 选择 |
+|---|---|
+| 框架 | Expo SDK 54 / React Native 0.81.5 / React 19 |
+| 数据库客户端 | Firebase JS SDK 10 — `onValue` 监听 `/spray_events` |
+| 设备预览 | iPhone 上的 Expo Go（同局域网扫码） |
+
+### 运行方式
+
+```bash
+cd Web/mobile-app
+# 首次运行：cp firebase.js.example firebase.js，填入 Firebase Console 中的 apiKey
+npx expo start
+```
+
+用 iPhone 相机扫描终端二维码 → 在 Expo Go 中打开。`firebase.js` 已加入 gitignore；含占位符的 `firebase.js.example` 已提交至仓库。
+
+<div class="app-screenshots-embed"></div>
 
 ## Next Steps
 

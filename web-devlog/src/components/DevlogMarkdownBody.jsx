@@ -419,6 +419,34 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
       if (classes.includes('trigger-priority-diagram-embed')) {
         return <TriggerPriorityDiagram />
       }
+      if (classes.includes('app-screenshots-embed')) {
+        return (
+          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
+            <figure className="w-full text-center sm:max-w-[260px]">
+              <img
+                src={resolveAssetUrl('images/devlog/app_test_1.png')}
+                alt="AuraSync app first launch — Expo Go developer menu confirming SDK 54.0.0, spray history cards visible behind"
+                loading="lazy"
+                className="w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                First launch — Expo Go SDK 54.0.0 confirmed
+              </figcaption>
+            </figure>
+            <figure className="w-full text-center sm:max-w-[260px]">
+              <img
+                src={resolveAssetUrl('images/devlog/app_test_2.png')}
+                alt="AuraSync spray history list — Motion and Voice events sorted newest-first with trigger icons, timestamps and duration"
+                loading="lazy"
+                className="w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Spray history — live Firebase events, newest-first
+              </figcaption>
+            </figure>
+          </div>
+        )
+      }
       if (classes.includes('mentor-card-embed')) {
         return <MentorCard />
       }

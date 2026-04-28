@@ -24,6 +24,10 @@ monitor/.env
 # Arduino credentials (copy secrets.h.example → secrets.h and fill in)
 Code/**/secrets.h
 
+# Mobile app
+mobile-app/node_modules/
+mobile-app/firebase.js
+
 # OS
 .DS_Store
 Thumbs.db

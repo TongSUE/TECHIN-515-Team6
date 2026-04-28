@@ -25,11 +25,12 @@ credits:
     tags:
       - AuraSync Unified Firmware
       - State Machine Design
+      - Mobile App
       - Devlog
 prior_week_progress:
   end-to-end-integration: true
   unified-state-machine: true
-  mobile-app: false
+  mobile-app: true
   bme680-bring-up: true
 planned_next:
   - id: bme680-firmware
@@ -65,6 +66,8 @@ Sensors, firmware, and architecture — three parallel tracks advanced this week
   PIR-driven) and Layer 2 (IDLE/SPRAYING/COOLDOWN, shared absolute cooldown) with a
   four-priority trigger hierarchy. BME680 integration into the live firmware is in
   progress.
+- **Mobile app** — Yutong built a React Native (Expo SDK 54) app that reads Firebase spray
+  event history in real time and runs on iPhone via Expo Go — no Xcode required.
 
 <a id="bme680-bring-up" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 
@@ -217,6 +220,50 @@ P2 fires when gas resistance drops below 10 kΩ regardless of presence. In SLEEP
 ### P3 — VOC Inflection + PIR
 
 P3 targets the post-flush scenario: VOC rises as odour builds, peaks, then begins falling as ventilation takes effect. The firmware detects this inflection point using a rolling history of 8 BME680 samples (at 3 s intervals, this covers ~24 s of history). Detection requires the last three readings to show a declining gas resistance trend (resistance falls = odour rises) followed by the current reading showing recovery (resistance rises). PIR must have seen a HIGH signal within the past 5 s to confirm presence.
+
+<a id="mobile-app" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
+
+## 4. Mobile App — Spray History Viewer
+
+The Mobile App Framework task deferred from Week 3 was completed this week. The goal: a basic iOS-demo-able app that reads Firebase spray event history — no Xcode, no Apple Developer account needed.
+
+> **Scope note:** This is an end-to-end technology stack proof-of-concept — demonstrating that an iOS client can connect to the Firebase backend and receive live data from the device. Feature design (UI, controls, notifications) is still being refined in parallel with the firmware.
+
+### Technology Choice
+
+**Expo (React Native)** over a plain web app: Expo Go (free, App Store) lets you run the app on iPhone instantly by scanning a QR code from the terminal. JavaScript/JSX is the same language as the devlog site — no new language to learn. The Firebase JS SDK v10 works in Expo's managed workflow without native modules.
+
+### What It Shows
+
+Each spray event from `/spray_events` in Firebase Realtime Database renders as a card:
+
+| Field | Display |
+|---|---|
+| `trigger` | Icon + label (🚶 Motion / 🎙️ Voice / 📱 App / 💨 VOC) |
+| `unixMs` | Date and time (e.g. Apr 25 · 09:08 PM) |
+| `duration_ms` | Duration in seconds (e.g. 5.0 s) |
+
+Events are sorted newest-first. Firebase's `onValue` real-time listener updates the list the moment the ESP32 pushes a new event — no manual refresh needed.
+
+### Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Expo SDK 54 / React Native 0.81.5 / React 19 |
+| Database client | Firebase JS SDK 10 — `onValue` on `/spray_events` |
+| Device preview | Expo Go on iPhone (same-network QR scan) |
+
+### Running It
+
+```bash
+cd Web/mobile-app
+# first time: cp firebase.js.example firebase.js — fill in apiKey from Firebase Console
+npx expo start
+```
+
+Scan the terminal QR code with iPhone Camera → opens in Expo Go. `firebase.js` is gitignored; `firebase.js.example` with placeholders is committed.
+
+<div class="app-screenshots-embed"></div>
 
 ## Next Steps
 
