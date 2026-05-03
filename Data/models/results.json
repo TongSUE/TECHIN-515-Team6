@@ -1,0 +1,12 @@
+{
+  "iaq": {
+    "rf_val_macro_f1": 0.3333,
+    "rf_test_macro_f1": 0.6667,
+    "mlp_val_macro_f1": 0.3333
+  },
+  "shower_cnn": {
+    "val_f1": 0.7551,
+    "test_f1": 0.0,
+    "threshold": 0.7
+  }
+}

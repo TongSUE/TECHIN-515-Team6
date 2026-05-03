@@ -29,9 +29,6 @@ Code/**/secrets.h
 mobile-app/node_modules/
 mobile-app/firebase.js
 
-# ML data — large files, not versioned
-Data/
-
 # VS Code workspace settings
 .vscode/
 

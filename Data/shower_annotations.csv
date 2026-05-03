@@ -1,0 +1,4 @@
+session_id,shower_start_utc,shower_end_utc,notes
+20260430-035330,2026-04-30T05:10:00Z,2026-04-30T05:58:00Z,shower 1 of 2 (22:10-22:58 local)
+20260430-035330,2026-04-30T06:20:00Z,2026-04-30T07:08:00Z,shower 2 of 2 (23:20-00:08 local)
+20260502-025019,2026-05-02T05:30:00Z,2026-05-02T06:50:00Z,mid-shower bump is same event (22:30-23:50 local)
