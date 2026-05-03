@@ -4,3 +4,6 @@ numpy
 scikit-learn
 requests
 jupyter
+joblib
+# PyTorch: install via conda for GPU support (see CLAUDE.md)
+# conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvidia

@@ -2,8 +2,11 @@
 import urllib.request
 import json
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+
+PDT = ZoneInfo("America/Los_Angeles")
 
 DB_URL    = "https://aurasync-team6-default-rtdb.firebaseio.com"
 DB_SECRET = "YsI1CXg3S4UiAHPZgUqJSRo9n6Vt1PIITw8VbR1z"
@@ -25,7 +28,7 @@ for r in (readings or {}).values():
         if not iso:
             continue
         try:
-            dt = datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            dt = datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).astimezone(PDT)
             if dt.year < 2025:
                 continue
             times.append(dt)
@@ -40,11 +43,11 @@ for r in (readings or {}).values():
 data = sorted(zip(times, temps, humids, pressures, gases))
 times, temps, humids, pressures, gases = zip(*data)
 
-fmt = mdates.DateFormatter("%m/%d %H:%M")
+fmt = mdates.DateFormatter("%m/%d %H:%M", tz=PDT)
 
 # ── Plot 1: four separate subplots ────────────────────────────────────────────
 fig1, axes = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
-fig1.suptitle(f"VOC Logger — Session {SESSION_ID}", fontsize=14)
+fig1.suptitle(f"VOC Logger — Session {SESSION_ID}  (Seattle local time)", fontsize=14)
 
 for ax, values, label, color in zip(
     axes,
@@ -68,7 +71,7 @@ def norm(vals):
     return [(v - mn) / (mx - mn) if mx != mn else 0 for v in vals]
 
 fig2, ax2 = plt.subplots(figsize=(12, 5))
-fig2.suptitle(f"VOC Logger — Session {SESSION_ID} — All Metrics Normalised (0–1)", fontsize=14)
+fig2.suptitle(f"VOC Logger — Session {SESSION_ID} — All Metrics Normalised (0–1)  (Seattle local time)", fontsize=14)
 
 for values, label, color in zip(
     [temps, humids, pressures, gases],
