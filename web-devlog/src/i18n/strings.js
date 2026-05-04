@@ -73,8 +73,8 @@ export const strings = {
       footer: 'MSTI Hardware–Software Lab II · Team 6 · AuraSync',
       people: [
         {
-          role: 'Firmware · Voice · Schematic · Devlog',
-          bio: 'Leads firmware architecture and the devlog site. Built the ESP-SR wake-word pipeline, SPH0645 I2S microphone bring-up, KiCAD schematic updates, and this devlog site from scratch.',
+          role: 'Firmware · Voice · App · Devlog',
+          bio: 'Leads firmware architecture and the devlog site. Built the ESP-SR wake-word pipeline, I2S microphone bring-up, KiCAD schematic updates, the unified AuraSync state machine, and the mobile app — alongside this devlog site.',
           weeks: [
             {
               label: 'Week 1',
@@ -102,11 +102,27 @@ export const strings = {
                 'Devlog write-up',
               ],
             },
+            {
+              label: 'Week 4',
+              items: [
+                'AuraSync unified firmware (PIR + voice + Firebase)',
+                'Dual-layer state machine architecture (co-designed)',
+                'Power optimization — WiFi modem sleep + Core 0 throttle',
+                'Mobile app — Firebase spray history viewer (Expo + RN)',
+              ],
+            },
+            {
+              label: 'Week 5',
+              items: [
+                'Mobile app real-time display (Expo SDK 54 + Firebase JS SDK 10)',
+                'Devlog write-up',
+              ],
+            },
           ],
         },
         {
-          role: 'Hardware · CAD · ML Research · Procurement',
-          bio: 'Drives hardware integration and physical build. Integrated the HC-SR501 PIR sensor and 2N2222 atomizer switching circuit, manages 3D enclosure prototyping, and leads milestone presentations.',
+          role: 'Hardware · ML Pipeline · Data Collection · CAD',
+          bio: 'Drives hardware integration and data science. Brought up the BME680 and built the first end-to-end ML pipeline — IAQ Random Forest + Shower 1D-CNN — while managing 3D enclosure prototyping and milestone presentations.',
           weeks: [
             {
               label: 'Week 1',
@@ -130,6 +146,22 @@ export const strings = {
                 'HC-SR501 PIR sensor integration',
                 'Ultrasonic atomizer circuit (2N2222 transistor)',
                 'Milestone 1 presentation slides',
+              ],
+            },
+            {
+              label: 'Week 4',
+              items: [
+                'BME680 sensor bring-up & I2C validation',
+                'Dual-layer state machine architecture (co-designed)',
+              ],
+            },
+            {
+              label: 'Week 5',
+              items: [
+                'BME680 bathroom data collection (16 927 readings, 14 sessions)',
+                'IAQ Random Forest pipeline (CV Macro F1 0.77 ± 0.17)',
+                'Shower 1D-CNN detector (Val F1 0.77, AUC 0.94)',
+                'BSEC2 firmware upgrade (self-calibrating IAQ index)',
               ],
             },
           ],
@@ -239,8 +271,8 @@ export const strings = {
       footer: 'MSTI 硬件-软件实验室 II · 第 6 组 · AuraSync',
       people: [
         {
-          role: '固件 · 语音识别 · 原理图 · 开发日志',
-          bio: '负责固件架构与开发日志网站。主导了 ESP-SR 唤醒词识别流程、SPH0645 I2S 麦克风调试、KiCAD 原理图更新，并从零搭建了本开发日志网站。',
+          role: '固件 · 语音 · 应用 · 开发日志',
+          bio: '负责固件架构与开发日志网站。主导了 ESP-SR 唤醒词流程、I2S 麦克风调试、KiCAD 原理图更新、AuraSync 统一状态机以及移动端应用——同时从零搭建了本开发日志网站。',
           weeks: [
             {
               label: '第 1 周',
@@ -260,11 +292,27 @@ export const strings = {
                 '开发日志撰写',
               ],
             },
+            {
+              label: '第 4 周',
+              items: [
+                'AuraSync 统一固件（PIR + 语音 + Firebase）',
+                '双层状态机架构设计（与 Lucia 共同设计）',
+                '省电优化——WiFi 调制解调器休眠 + Core 0 频率限制',
+                '移动端应用——Firebase 喷雾历史查看器（Expo + RN）',
+              ],
+            },
+            {
+              label: '第 5 周',
+              items: [
+                '移动端应用实时展示（Expo SDK 54 + Firebase JS SDK 10）',
+                '开发日志撰写',
+              ],
+            },
           ],
         },
         {
-          role: '硬件 · CAD · 机器学习研究 · 采购',
-          bio: '负责硬件集成与实体搭建。完成了 HC-SR501 PIR 传感器集成和 2N2222 雾化器驱动电路，管理 3D 外壳原型设计，并主导里程碑演示。',
+          role: '硬件 · 机器学习 · 数据采集 · CAD',
+          bio: '负责硬件集成与数据科学。完成了 BME680 调试并构建了首个端到端 ML 流水线——IAQ 随机森林 + 淋浴 1D-CNN——同时管理 3D 外壳原型设计并主导里程碑演示。',
           weeks: [
             {
               label: '第 1 周',
@@ -280,6 +328,22 @@ export const strings = {
                 'HC-SR501 PIR 传感器集成',
                 '超声波雾化器电路（2N2222 三极管）',
                 '里程碑 1 演示幻灯片',
+              ],
+            },
+            {
+              label: '第 4 周',
+              items: [
+                'BME680 传感器调试与 I2C 地址验证',
+                '双层状态机架构设计（与 Yutong 共同设计）',
+              ],
+            },
+            {
+              label: '第 5 周',
+              items: [
+                'BME680 浴室数据采集（16 927 条读数，14 个会话）',
+                'IAQ 随机森林流水线（CV Macro F1 0.77 ± 0.17）',
+                '淋浴 1D-CNN 检测器（Val F1 0.77，AUC 0.94）',
+                'BSEC2 固件升级（自标定 IAQ 指数）',
               ],
             },
           ],
