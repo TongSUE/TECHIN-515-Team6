@@ -2,7 +2,7 @@
 week: 4
 date: "2026年4月21日 - 4月27日"
 title: "BME680 调试、统一固件与省电状态机"
-status: "In Progress"
+status: "Completed"
 show_next_steps: true
 summary: >
   Lucia 完成了 BME680 VOC/环境传感器的调试——I2C 地址 0x77 验证通过，四路数据流全部确认，热风枪测试验证了实时响应。Yutong 将 PIR、语音识别与 Firebase 合并为单一 AuraSync 固件，采用双层状态机架构，并通过 WiFi 调制解调器休眠和 Core 0 频率限制实现了可量化的空闲省电效果。双层状态机架构（SLEEP/AWAKE × IDLE/SPRAYING/COOLDOWN）与四优先级触发模型由两人共同设计；BME680 集成进固件的工作仍在进行中。

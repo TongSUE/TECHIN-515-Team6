@@ -2,7 +2,7 @@
 week: 4
 date: "April 21 - April 27, 2026"
 title: "BME680, Unified Firmware & Power-Aware State Machine"
-status: "In Progress"
+status: "Completed"
 show_next_steps: true
 summary: >
   Lucia brought up the BME680 VOC/environmental sensor — I2C validated at 0x77,

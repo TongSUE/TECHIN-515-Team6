@@ -28,20 +28,20 @@ prior_week_progress:
   bme680-firmware: true
   voc-pattern-detection: "partial"
   voc-baseline: true
-  firebase-reverse: false
+  firebase-reverse: true
 planned_next:
-  - id: annotated-shower-data
-    label: 带标注的淋浴数据采集
-    description: "使用 BSEC2 采集 5 个以上淋浴会话，手动标注开始/结束时间并追加到 shower_annotations.csv——目标：≥150 个正样本窗口用于重训练。"
-  - id: retrain-shower-model
-    label: 用 BSEC2 数据重训练淋浴 CNN
-    description: 将 gas_norm 流水线替换为经标定的 iaq + iaq_accuracy ≥ 1 过滤器；重训练 1D-CNN；目标：在正式 held-out 测试集上 Val F1 ≥ 0.85。
-  - id: firebase-reverse
-    label: Firebase 反向控制
-    description: "应用向 /commands/action 写入指令；ESP32 每 3 秒轮询、执行并清除节点——无需 WebSocket 的双向控制。"
+  - id: shower-data-and-retrain
+    label: 淋浴数据采集与 CNN 重训练
+    description: "使用 BSEC2 采集 5 个以上淋浴会话并标注开始/结束时间（≥150 个正样本窗口），随后将 gas_norm 流水线替换为经标定的 iaq + iaq_accuracy ≥ 1 过滤器重训练 1D-CNN；目标 Val F1 ≥ 0.85。"
   - id: extreme-case-testing
     label: 极端 VOC 场景测试
-    description: "香水、空气清新剂、清洁产品——测试 IAQ 峰值幅度、恢复时间，以及分类器的边缘情况（复合事件、高湿度基线天）。"
+    description: "香水、空气清新剂、烹饪 VOC——测试 IAQ 峰值幅度、恢复时间及分类器边缘情况（复合事件、高湿度基线天）。"
+  - id: enclosure
+    label: 中保真度外壳
+    description: "设计并制作容纳全部元件（ESP32-S3、BME680、PIR、雾化片、电池）的中保真度外壳——Milestone 2 演示所需的无线独立形态。"
+  - id: pcb
+    label: PCB 设计与制作
+    description: "将 ESP32-S3、INMP441、BME680、PIR、雾化 MOSFET、MT3608 升压及 LiPo 接口集成到单块 PCB；完成布线、验证封装、送厂打样。"
 ---
 
 ## Mentor Meeting
@@ -291,13 +291,7 @@ ESP32  →  deleteNode("/commands/action")
 
 **新增 UI 模块：**
 
-<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:24px 0">
-
-![AuraSync 应用浅色模式上半部分——设备卡片含喷雾按钮（空闲状态）、空气质量卡片（等待传感器数据）、设置卡片（自动喷雾已开启，时长 5 秒）](images/devlog/app-ui-1.png "上半部分：喷雾按钮空闲状态、空气质量区域等待传感器、设置卡片中自动喷雾已开启且时长设为 5 秒")
-
-![AuraSync 应用浅色模式下半部分——设置卡片（自动喷雾已关闭）、用量卡片（共 33 次喷雾 / 2 分钟运行时长 / 储液 26.0 ml）、最近活动历史记录](images/devlog/app-ui-2.png "下半部分：设置卡片中自动喷雾已关闭、用量卡片（33 次喷雾、2 分钟运行时长、26/30 ml 储液）、语音触发喷雾历史记录")
-
-</div>
+<div class="app-ui-screenshots-embed"></div>
 
 | 模块 | 显示内容 |
 |---|---|
@@ -312,7 +306,7 @@ ESP32  →  deleteNode("/commands/action")
 
 | 完成 | 任务 | 说明 |
 |:-:|---|---|
-| <input type="checkbox" /> | **带标注的淋浴数据采集** | 使用 BSEC2 采集 5 个以上淋浴会话，标注开始/结束时间，追加到 `shower_annotations.csv`——目标 ≥ 150 个正样本窗口。 |
-| <input type="checkbox" /> | **用 BSEC2 数据重训练淋浴 CNN** | 将 `gas_norm` 流水线替换为 `iaq` + `iaq_accuracy ≥ 1` 过滤；重训练 1D-CNN；目标 Val F1 ≥ 0.85。 |
-| <input type="checkbox" checked /> | **Firebase 反向控制** | 应用向 `/commands/action` 写入 JSON 指令；ESP32 每 3 秒轮询、执行并通过 `deleteNode` 清除——无需 WebSocket 的双向控制。 |
-| <input type="checkbox" /> | **极端 VOC 场景测试** | 香水、空气清新剂、烹饪 VOC——测试 IAQ 峰值幅度、恢复时间，以及分类器的边缘情况。 |
+| <input type="checkbox" /> | **淋浴数据采集与 CNN 重训练** | 使用 BSEC2 采集 5 个以上淋浴会话并标注开始/结束时间（≥150 个正样本窗口）；将 `gas_norm` 替换为经标定的 `iaq` + `iaq_accuracy ≥ 1` 重训练 1D-CNN；目标 Val F1 ≥ 0.85。 |
+| <input type="checkbox" /> | **极端 VOC 场景测试** | 香水、空气清新剂、烹饪 VOC——测试 IAQ 峰值幅度、恢复时间及分类器边缘情况。 |
+| <input type="checkbox" /> | **中保真度外壳** | 设计并制作容纳全部元件（ESP32-S3、BME680、PIR、雾化片、电池）的中保真度外壳——Milestone 2 演示所需的无线独立形态。 |
+| <input type="checkbox" /> | **PCB 设计与制作** | 将 ESP32-S3、INMP441、BME680、PIR、MOSFET、MT3608 升压及 LiPo 接口集成到单块 PCB；布线、验证封装、送厂打样。 |

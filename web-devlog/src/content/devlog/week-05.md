@@ -31,20 +31,20 @@ prior_week_progress:
   bme680-firmware: true
   voc-pattern-detection: "partial"
   voc-baseline: true
-  firebase-reverse: false
+  firebase-reverse: true
 planned_next:
-  - id: annotated-shower-data
-    label: Annotated Shower Data Collection
-    description: "Collect 5+ shower sessions with BSEC2, annotate start/end times manually, and append to shower_annotations.csv — target: ≥150 positive windows for retraining."
-  - id: retrain-shower-model
-    label: Retrain Shower CNN with BSEC2 Data
-    description: Replace gas_norm pipeline with calibrated iaq + iaq_accuracy ≥ 1 filter; retrain 1D-CNN; target Val F1 ≥ 0.85 on a proper held-out test set.
-  - id: firebase-reverse
-    label: Firebase Reverse Control
-    description: "App writes to /commands/action; ESP32 polls every 3 s, executes spray, and clears the node — bi-directional control without WebSocket."
+  - id: shower-data-and-retrain
+    label: Shower Data Collection & CNN Retraining
+    description: "Collect 5+ BSEC2 shower sessions with annotated start/end times (≥150 positive windows); retrain 1D-CNN replacing gas_norm with calibrated iaq + iaq_accuracy ≥ 1; target Val F1 ≥ 0.85."
   - id: extreme-case-testing
     label: Extreme Case VOC Testing
-    description: "Perfume, air freshener, cleaning products — test IAQ spike magnitude, recovery time, and edge cases for the classifier (compound events, high-humidity baseline days)."
+    description: "Perfume, air freshener, cooking VOCs — test IAQ spike magnitude, recovery time, and classifier edge cases (compound events, high-humidity baseline days)."
+  - id: enclosure
+    label: Medium-Fidelity Enclosure
+    description: "Design and fabricate a medium-fidelity enclosure housing ESP32-S3, BME680, PIR, atomizer, and battery — untethered form factor required for Milestone 2 demo."
+  - id: pcb
+    label: PCB Design & Fabrication
+    description: "Integrate ESP32-S3, INMP441, BME680, PIR, atomizer MOSFET, MT3608 boost, and LiPo connector onto a single PCB; route traces, verify footprints, send for fabrication."
 ---
 
 ## Mentor Meeting
@@ -294,13 +294,7 @@ With the command channel working end-to-end, the app was redesigned from a spray
 
 **New sections:**
 
-<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:24px 0">
-
-![AuraSync app — light mode: device card with spray button, Air Quality card (waiting for sensor), Settings card with Auto-Spray enabled and 5 s duration](images/devlog/app-ui-1.png "Top: spray button in idle state, Air Quality section waiting for sensor data, Settings card with Auto-Spray on and 5-second spray duration")
-
-![AuraSync app — light mode scrolled: Settings with Auto-Spray off, Usage card showing 33 total sprays / 2 m runtime / reservoir 26.0 ml, Recent Activity list](images/devlog/app-ui-2.png "Bottom: Settings card with Auto-Spray disabled, Usage card (33 total sprays, 2 min runtime, 26 / 30 ml reservoir), Recent Activity showing Voice Spray history")
-
-</div>
+<div class="app-ui-screenshots-embed"></div>
 
 | Section | What it shows |
 |---|---|
@@ -315,7 +309,7 @@ With the command channel working end-to-end, the app was redesigned from a spray
 
 | Done | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **Annotated Shower Data Collection** | Collect 5+ shower sessions with BSEC2, annotate start/end times, append to `shower_annotations.csv` — target ≥ 150 positive windows. |
-| <input type="checkbox" /> | **Retrain Shower CNN with BSEC2 Data** | Replace `gas_norm` pipeline with `iaq` + `iaq_accuracy ≥ 1` filter; retrain 1D-CNN; target Val F1 ≥ 0.85. |
-| <input type="checkbox" checked /> | **Firebase Reverse Control** | App writes to `/commands/action`; ESP32 polls every 3 s, reads JSON, executes, and clears via `deleteNode` — bi-directional control without WebSocket. |
+| <input type="checkbox" /> | **Shower Data Collection & CNN Retraining** | Collect 5+ BSEC2 shower sessions with annotated start/end times (≥150 positive windows); retrain 1D-CNN replacing `gas_norm` with calibrated `iaq` + `iaq_accuracy ≥ 1`; target Val F1 ≥ 0.85. |
 | <input type="checkbox" /> | **Extreme Case VOC Testing** | Perfume, air freshener, cooking VOCs — test IAQ spike magnitude, recovery time, and classifier edge cases. |
+| <input type="checkbox" /> | **Medium-Fidelity Enclosure** | Design and fabricate a housing for all components (ESP32-S3, BME680, PIR, atomizer, battery) — untethered form factor required for Milestone 2 demo. |
+| <input type="checkbox" /> | **PCB Design & Fabrication** | Integrate ESP32-S3, INMP441, BME680, PIR, MOSFET, MT3608 boost, and LiPo connector onto a single PCB; route traces, verify footprints, and send for fabrication. |

@@ -447,6 +447,34 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
           </div>
         )
       }
+      if (classes.includes('app-ui-screenshots-embed')) {
+        return (
+          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
+            <figure className="w-full text-center sm:max-w-[260px]">
+              <img
+                src={resolveAssetUrl('images/devlog/app-ui-1.png')}
+                alt="AuraSync redesigned app — light mode top half: spray button, Air Quality card, Settings card"
+                loading="lazy"
+                className="w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Spray button · Air Quality · Settings
+              </figcaption>
+            </figure>
+            <figure className="w-full text-center sm:max-w-[260px]">
+              <img
+                src={resolveAssetUrl('images/devlog/app-ui-2.png')}
+                alt="AuraSync redesigned app — light mode bottom half: usage stats, reservoir estimate, activity log"
+                loading="lazy"
+                className="w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Usage · Reservoir estimate · Recent Activity
+              </figcaption>
+            </figure>
+          </div>
+        )
+      }
       if (classes.includes('mentor-card-embed')) {
         return <MentorCard />
       }
