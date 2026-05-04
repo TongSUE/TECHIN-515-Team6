@@ -44,11 +44,30 @@ planned_next:
 
 ## Mentor Meeting
 
-*本周与项目导师再次进行了会议。*
+*本周与项目导师 Justin 再次进行了会议。*
 
 <div class="mentor-card-embed"></div>
 
-[TODO — 填写导师会议记录]
+Justin 给出了五点具体建议：
+
+**1 · ML 边缘情况覆盖**
+构建机器学习模型时，需要考虑传感器在真实使用中可能遇到的各种极端情况，例如：有人进入但未如厕（只是拿东西）、多人连续使用、清洁剂或香皂（非如厕来源）引起的 VOC 变化，以及设备刚启动时不稳定的预热读数。需要设计系统性测试，验证模型在这些场景下不会误触发。
+
+**2 · 应用远程提前喷雾**
+当无人在卫生间时，用户应能提前通过手机应用触发喷雾——例如进入卫生间之前。我们待办中的 Firebase 反向控制功能正好对应这一需求；Justin 建议优先推进。
+
+**3 · PCB 与外壳协同设计**
+PCB 布局应与外壳设计同步进行，而不是事后调整。需提前规划：每个传感器的固定方式（螺丝孔、卡扣位置）、BME680 的通气开口（必须接触环境空气）、PIR 的朝向与视角范围，以及接口和走线位置不被外壳遮挡。
+
+**4 · 换用更小的 PIR 传感器**
+HC-SR501 体积较大，不适合紧凑外壳。Justin 建议换用更小的模块，例如 **AM312**，体积小得多，更适合最终产品形态。
+
+> [AM312 迷你热释电 PIR（Amazon 链接）](https://www.amazon.com/HiLetgo-Pyroelectric-Sensor-Infrared-Detector/dp/B07RT7MK7C/ref=sr_1_5?crid=TWL9YZ1T5VSM&dib=eyJ2IjoiMSJ9.l1xKrNlnzEthz1oRjEpGYT8CihWAyuwJTb89TiNx1Mm0Q51JTMCSAW7ZHh4v0hPP7ZNXtp8_59dRTvwixmbeX0Fe14uw1TeO9mm5TWhNbvjUsYQBK4L_TxCijl69Q1IBpJyNwJ6iB3UO2rGH0YyvzX2LsYJolBoKuudWQIte7b8LyjgFtpjhw3ocRsv14HR4tn3-66SfWjp42oqY92pq0GpFVG_hWluqajOa1xAmJdHeq1MxVUAgvDG03wGdbeu5kcRwuPWostLJgfXAcxa2MvQyGkRoKlyLvXBw81cBqzs.NFvSE8Vvaa9xcc0Blp5dKBWsKA1565p8HRNywZMI6pA&dib_tag=se&keywords=AM312+Mini+Pyroelectric&qid=1777671054&sprefix=am312+mini+pyroelectric+%2Caps%2C145&sr=8-5)
+
+**5 · 3.3V → 5V 升压方案**
+超声波雾化片需要 5V 供电，而 ESP32-S3 工作在 3.3V。Justin 建议评估小型升压模块。我们手头已有 **MT3608**（已在 BOM 中），是非常合适的选择。他还推荐了 **XL6002** 作为紧凑型替代方案，适合直接集成到 PCB 上。
+
+> [XL6002 升压模块（Amazon 链接）](https://www.amazon.com/EC-Buying-XL63020-3-3-XL63020-3-3V-Microcontroller/dp/B0D8T3J8QZ/ref=sxin_17_pa_sp_search_thematic_sspa?content-id=amzn1.sym.9a3e287f-4954-410d-ad08-8ae28dc40a36%3Aamzn1.sym.9a3e287f-4954-410d-ad08-8ae28dc40a36&crid=SHWVWJAWK9ND&cv_ct_cx=boost+convertor&keywords=boost+convertor&pd_rd_i=B0D8T3J8QZ&pd_rd_r=4bbd85b6-dcdf-462b-bb9f-4f481078cf7a&pd_rd_w=uSpOG&pd_rd_wg=Fsrx1&pf_rd_p=9a3e287f-4954-410d-ad08-8ae28dc40a36&pf_rd_r=G2JKQSXNVKTV496J0RCP&qid=1777670940&s=electronics&sbo=RZvfv%2F%2FHxDF%2BO5021pAnSA%3D%3D&sprefix=boost+convertor%2Celectronics%2C161&sr=1-1-6e60e730-e094-43e9-99e8-1a4854cd27ff-spons&aref=JRGHB5aJmx&sp_csd=d2lkZ2V0TmFtZT1zcF9zZWFyY2hfdGhlbWF0aWM&psc=1)
 
 <div class="special-thanks-card-embed"></div>
 
@@ -73,6 +92,20 @@ Seeed XIAO ESP32-S3 + BME680 传感器部署于家庭浴室，采集了约 **3 �
 | 测试集 | 2 | 6 046 | 0 |
 
 > 数据划分在会话级别进行，而非读数级别，以防止连续时序数据的信息泄露。
+
+### 部署过程
+
+为保护裸露的面包板电路不受浴室水汽和冷凝水的影响，整个电路在每次部署前均用**保鲜膜**进行了包裹处理——这是一种快速的原型保护方案，在多日无人值守运行中被证明切实有效。
+
+![ESP32-S3 和 BME680 面包板电路用保鲜膜包裹做防水处理](images/devlog/water-proof.jpg "面包板电路用保鲜膜包裹，保护裸露器件免受浴室湿气和水汽影响")
+
+数据采集分两个地点进行。我们首先在 **GIX 楼的卫生间**采集了一个下午的数据，建立初步的真实环境基线，并在箱子上贴上便利贴提示路人勿触碰设备。
+
+![传感器部署在 GIX 楼卫生间，放置在纸箱上，便利贴写着"正在采集数据，请勿触碰"和"有问题请联系 Lucia / Yutong"](images/devlog/collecting-in-gix.jpg "GIX 楼首次实地部署——面包板放在洗手台纸箱上，附有告示便利贴")
+
+随后 Lucia 将设备带回家，持续运行数日，采集了**数据集的主体部分**，包含日常生活中自然产生的 VOC 变化。
+
+![传感器部署在家庭浴室洗手台上，保鲜膜包裹的面包板和 USB 线清晰可见](images/devlog/collecting-in-home.jpg "家庭浴室部署——多日连续数据采集，设备放置在洗手台上")
 
 每条读数包含：`temp_c`、`humidity_pct`、`pressure_hpa`、`gas_ohm`、`elapsed_s`、`unix_ms`、`iso`、`heater_stable`。
 
