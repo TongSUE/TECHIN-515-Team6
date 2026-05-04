@@ -1,15 +1,16 @@
 ---
 week: 5
 date: "2026年4月28日 - 5月4日"
-title: "数据采集、首个 ML 流水线与 BSEC2 固件升级"
+title: "数据采集、ML 流水线、BSEC2 固件升级与应用重设计"
 status: "In Progress"
 show_next_steps: true
 summary: >
-  团队从家庭浴室采集了约 3 天的连续 BME680 数据（14 个会话，10 000+ 条读数，10 秒间隔），
-  并构建了完整的端到端 ML 流水线：随机森林 IAQ 分类器（Macro F1 0.77）和 1D-CNN 淋浴事件检测器
-  （Val F1 0.77，AUC 0.94）。一个关键发现——强 VOC 暴露后原始气体阻抗基线发生永久漂移——
-  推动了固件从 Adafruit BME680 驱动升级至 Bosch BSEC2，后者提供自标定 IAQ 指数（0–500），
-  无需手动归一化即可应对多日漂移。
+  团队采集了约 3 天连续 BME680 数据（16 927 条读数），构建了完整端到端 ML 流水线：
+  随机森林 IAQ 分类器（CV Macro F1 0.77 ± 0.17）和 1D-CNN 淋浴事件检测器
+  （Val F1 0.77，AUC 0.94）。固件升级至 Bosch BSEC2 解决了多日气体阻抗基线漂移问题。
+  Yutong 实现了完整的 Firebase 双向控制——应用通过 JSON 消息总线向 ESP32 发送指令，
+  通过节点删除确认执行，并将应用重设计为 Apple 风格智能家居面板，
+  包含实时传感器显示、冷却倒计时、设置同步、使用统计和推送通知。
 credits:
   - name: Lucia
     initials: L
@@ -20,7 +21,8 @@ credits:
   - name: Yutong
     initials: Y
     tags:
-      - 移动端应用
+      - Firebase 反向控制
+      - 应用重设计
       - 开发日志
 prior_week_progress:
   bme680-firmware: true
@@ -243,11 +245,74 @@ $$\text{gas\_norm}_t = \frac{\text{gas\_ohm}_t - \text{baseline}_t}{\text{baseli
 - BSEC2 校准状态保存至 NVS——断电后恢复
 - 冷启动时 `iaq_accuracy = 0`；约 30 分钟后预计 ≥ 1，约 4 天后达到完全校准（3）
 
+<a id="firebase-reverse" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
+
+## 4. Firebase 反向控制与应用重设计
+
+### 双向指令协议
+
+目标：应用向 ESP32 发送喷雾指令并获得确认——无需手机和设备在同一局域网，也无需维持持久的 WebSocket 连接。
+
+**方案：以 Firebase RTDB 为一次性消息总线。** 应用向 `/commands/action` 写入 JSON 指令；ESP32 每 3 秒轮询、读取并执行，随后调用 `deleteNode` 清除该路径。Firebase 将删除操作以 `null` 快照的形式传播给应用的 `onValue` 监听器——这是一种轻量级的拉取式确认机制，往返延迟约 1 秒。
+
+```
+应用写入  →  /commands/action:
+             { action: "spray", source: "app",
+               sprayDurationS: 5, requestedAt: 1746354000000 }
+
+ESP32 每 3 s 轮询  →  读取 JSON  →  执行喷雾
+ESP32  →  deleteNode("/commands/action")
+
+应用 onValue:  snap.val() === null  →  指令已确认 ✓
+```
+
+**开发过程中修复的 Bug：** 原始 `pollFirebaseCommands` 使用 `getString` 读取节点（对 JSON 对象会静默失败）并通过 `setString(..., "")` 确认（设为空字符串 `""` 而非 `null`，但应用检测的是 `null`）。已修正：`getString` → `getJSON` + `FirebaseJsonData`，确认方式 → `deleteNode`。
+
+应用侧设有 10 秒超时，无确认则转为 `pending → error` 状态，3 秒后自动重置为 `idle`。
+
+指令中包含 `sprayDurationS` 字段。固件读取后为该次喷雾覆盖雾化时长——应用触发的喷雾可独立请求 1–30 秒的任意时长，不受存储设置影响。
+
+### 传感器与状态反馈路径
+
+为实现设备到应用的反馈闭环，固件现在将传感器状态和冷却时间写入 Firebase：
+
+| 路径 | 写入方 | 内容 |
+|---|---|---|
+| `/sensors/latest` | ESP32 每 5 s | `temp_c`、`humidity_pct`、`gas_ohm`、`heater_ok`、`context`、`updatedAt` |
+| `/status/cooldownEndsAt` | ESP32 状态变化时 | 冷却结束时的 Unix 毫秒时间戳；空闲时为 `0` |
+| `/settings/autoSprayEnabled` | 应用 | `true`/`false`——在固件侧禁用 P2/P3 传感器触发 |
+| `/settings/sprayDurationS` | 应用 | 默认雾化时长（1–30 s）；固件每 10 s 重新读取 |
+
+### 移动端应用重设计
+
+双向指令通道跑通后，应用从喷雾历史查看器重设计为完整的智能家居控制面板，采用 Apple 风格的深色/浅色双主题。
+
+**主题系统：** `useColorScheme()` 检测系统偏好。`ThemeCtx` React Context 持有当前色板 `C` 和经 `useMemo` 缓存的 `StyleSheet` `s`——所有组件调用 `useTheme()` 而非接受属性传参。`StyleSheet` 仅在配色方案切换时重建。
+
+**新增 UI 模块：**
+
+<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:24px 0">
+
+![AuraSync 应用浅色模式上半部分——设备卡片含喷雾按钮（空闲状态）、空气质量卡片（等待传感器数据）、设置卡片（自动喷雾已开启，时长 5 秒）](images/devlog/app-ui-1.png "上半部分：喷雾按钮空闲状态、空气质量区域等待传感器、设置卡片中自动喷雾已开启且时长设为 5 秒")
+
+![AuraSync 应用浅色模式下半部分——设置卡片（自动喷雾已关闭）、用量卡片（共 33 次喷雾 / 2 分钟运行时长 / 储液 26.0 ml）、最近活动历史记录](images/devlog/app-ui-2.png "下半部分：设置卡片中自动喷雾已关闭、用量卡片（33 次喷雾、2 分钟运行时长、26/30 ml 储液）、语音触发喷雾历史记录")
+
+</div>
+
+| 模块 | 显示内容 |
+|---|---|
+| **喷雾按钮** | 168 px 圆形渐变按钮；冷却中变灰；待确认时橙色脉动 |
+| **冷却倒计时条** | 设备卡片内的动画进度条，根据 `/status/cooldownEndsAt` 倒计 |
+| **传感器卡片** | 实时空气质量（气体 kΩ，颜色分级 Good / Moderate / Poor）、温度、湿度、情境标签（空闲 / 运动 / 喷雾中 / 冷却中） |
+| **设置卡片** | 自动喷雾开关（Switch → `/settings/autoSprayEnabled`）和时长步进器（− / + 按钮，1–30 s → `/settings/sprayDurationS`） |
+| **用量卡片** | 今日喷雾次数、触发类型分类（彩色标签）、累计储液估算（剩余 ml / 30 ml） |
+| **推送通知** | 通过 `expo-notifications` 在 Firebase 检测到非应用触发喷雾（trigger ≠ `app`）时发送本地通知 |
+
 ## Next Steps
 
 | 完成 | 任务 | 说明 |
 |:-:|---|---|
 | <input type="checkbox" /> | **带标注的淋浴数据采集** | 使用 BSEC2 采集 5 个以上淋浴会话，标注开始/结束时间，追加到 `shower_annotations.csv`——目标 ≥ 150 个正样本窗口。 |
 | <input type="checkbox" /> | **用 BSEC2 数据重训练淋浴 CNN** | 将 `gas_norm` 流水线替换为 `iaq` + `iaq_accuracy ≥ 1` 过滤；重训练 1D-CNN；目标 Val F1 ≥ 0.85。 |
-| <input type="checkbox" /> | **Firebase 反向控制** | 应用向 `/commands/action` 写入指令；ESP32 每 3 秒轮询、执行并清除——无需 WebSocket 的双向控制。 |
+| <input type="checkbox" checked /> | **Firebase 反向控制** | 应用向 `/commands/action` 写入 JSON 指令；ESP32 每 3 秒轮询、执行并通过 `deleteNode` 清除——无需 WebSocket 的双向控制。 |
 | <input type="checkbox" /> | **极端 VOC 场景测试** | 香水、空气清新剂、烹饪 VOC——测试 IAQ 峰值幅度、恢复时间，以及分类器的边缘情况。 |

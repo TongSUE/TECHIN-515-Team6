@@ -253,4 +253,4 @@ npx expo start
 | <input type="checkbox" checked /> | **BME680 固件集成** | 将 BME680 与 PIR 和麦克风一起集成到 AuraSync——三路传感器在单一设备上协同采样。 |
 | <input type="checkbox" /> | **VOC 模式检测** | 实现滑动窗口 VOC 先升后降检测，结合 PIR 确认作为自动喷雾触发器（P3）。 |
 | <input type="checkbox" checked /> | **真实环境 VOC 基线** | 在真实浴室采集气体阻抗时间序列数据，为 P2 极端异味阈值提供校准数据。 |
-| <input type="checkbox" /> | **Firebase 反向控制** | 应用向 `/commands/action` 写入指令；ESP32 每 3 秒轮询、执行并清除——无需 WebSocket 的双向控制。 |
+| <input type="checkbox" checked /> | **Firebase 反向控制** | 应用向 `/commands/action` 写入指令；ESP32 每 3 秒轮询、执行并清除——无需 WebSocket 的双向控制。 |

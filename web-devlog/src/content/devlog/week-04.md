@@ -274,4 +274,4 @@ Week 5 shifts from firmware architecture to sensor integration and real-environm
 | <input type="checkbox" checked /> | **BME680 Firmware Integration** | Integrate BME680 into AuraSync alongside PIR and microphone — all three sensors active on a single device with coordinated sampling. |
 | <input type="checkbox" /> | **VOC Pattern Detection** | Implement sliding-window VOC rise-then-fall detection with PIR confirmation as an automatic spray trigger (P3). |
 | <input type="checkbox" checked /> | **Real-Environment VOC Baseline** | Collect gas resistance time-series in an actual bathroom to calibrate the P2 extreme-odour threshold. |
-| <input type="checkbox" /> | **Firebase Reverse Control** | App writes to `/commands/action`; ESP32 polls every 3 s, executes, and clears — bi-directional control without WebSocket. |
+| <input type="checkbox" checked /> | **Firebase Reverse Control** | App writes to `/commands/action`; ESP32 polls every 3 s, executes, and clears — bi-directional control without WebSocket. |

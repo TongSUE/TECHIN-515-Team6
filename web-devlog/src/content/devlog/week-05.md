@@ -1,18 +1,19 @@
 ---
 week: 5
 date: "April 28 - May 4, 2026"
-title: "Data Collection, First ML Pipeline & BSEC2 Firmware"
+title: "Data Collection, ML Pipeline, BSEC2 Firmware & App Redesign"
 status: "In Progress"
 show_next_steps: true
 summary: >
-  The team collected approximately 3 days of continuous BME680 data from a home
-  bathroom (14 sessions, 10 000+ readings at 10 s intervals) and built a full
-  end-to-end ML pipeline: a Random Forest IAQ classifier (Macro F1 0.77) and a
-  1D-CNN shower event detector (Val F1 0.77, AUC 0.94). A key discovery — raw
-  gas resistance baseline drift after strong VOC exposure — prompted a firmware
-  upgrade from the Adafruit BME680 driver to Bosch BSEC2, which provides a
-  self-calibrating IAQ index (0–500) and survives multi-day drift without manual
-  normalisation.
+  The team collected approximately 3 days of continuous BME680 data (16 927
+  readings) and built a full end-to-end ML pipeline: a Random Forest IAQ
+  classifier (CV Macro F1 0.77 ± 0.17) and a 1D-CNN shower event detector
+  (Val F1 0.77, AUC 0.94). A firmware upgrade to Bosch BSEC2 addressed
+  multi-day gas-resistance baseline drift. Yutong implemented full
+  bi-directional Firebase control — the app commands the ESP32 via a
+  JSON message bus, receives acknowledgement via node deletion, and was
+  redesigned into an Apple-style smart-home panel with live sensor display,
+  cooldown countdown, settings sync, usage stats, and push notifications.
 credits:
   - name: Lucia
     initials: L
@@ -23,7 +24,8 @@ credits:
   - name: Yutong
     initials: Y
     tags:
-      - Mobile App
+      - Firebase Reverse Control
+      - App Redesign
       - Devlog
 prior_week_progress:
   bme680-firmware: true
@@ -246,11 +248,74 @@ The firmware was upgraded from the Adafruit BME680 driver to **Bosch-BSEC2-Libra
 - BSEC2 calibration state saved to NVS — survives power cuts
 - `iaq_accuracy = 0` at cold start; expect ≥ 1 in ~30 min, full calibration (3) in ~4 days
 
+<a id="firebase-reverse" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
+
+## 4. Firebase Reverse Control & Mobile App
+
+### Bi-directional Command Protocol
+
+The goal: the app sends a spray command to the ESP32 and receives confirmation — without requiring the phone and device to be on the same local network, and without maintaining a persistent WebSocket.
+
+**Solution: Firebase RTDB as a one-shot message bus.** The app writes a command JSON to `/commands/action`; the ESP32 polls every 3 seconds, reads and executes, then calls `deleteNode` to clear the path. Firebase propagates the deletion to the app's `onValue` listener as a `null` snapshot — a lightweight pull-based acknowledgement with roughly 1-second round-trip latency.
+
+```
+App  →  /commands/action:
+        { action: "spray", source: "app",
+          sprayDurationS: 5, requestedAt: 1746354000000 }
+
+ESP32 polls every 3 s  →  reads JSON  →  executes spray
+ESP32  →  deleteNode("/commands/action")
+
+App onValue:  snap.val() === null  →  command confirmed ✓
+```
+
+**Bug fixed during implementation:** the original `pollFirebaseCommands` used `getString` to read the node (fails silently on a JSON object) and acknowledged by `setString(..., "")` (empty string ≠ `null` — the app checked for `null`). Fixed: `getString` → `getJSON` + `FirebaseJsonData`, acknowledgement → `deleteNode`.
+
+A 10-second timeout on the app side transitions `pending → error` if no acknowledgement arrives, with a 3-second auto-reset to `idle`.
+
+The app command includes a `sprayDurationS` field. The firmware reads this and overrides the atomizer duration for that spray — app-commanded sprays can request any 1–30 s independently of the stored setting.
+
+### Sensor & Status Feedback Paths
+
+To close the feedback loop from device to app, the firmware writes sensor state and cooldown timing to Firebase:
+
+| Path | Written by | Content |
+|---|---|---|
+| `/sensors/latest` | ESP32 every 5 s | `temp_c`, `humidity_pct`, `gas_ohm`, `heater_ok`, `context`, `updatedAt` |
+| `/status/cooldownEndsAt` | ESP32 on state change | Unix ms timestamp when cooldown ends; `0` when idle |
+| `/settings/autoSprayEnabled` | App | `true`/`false` — disables P2/P3 sensor triggers firmware-side |
+| `/settings/sprayDurationS` | App | Default atomizer on-time (1–30 s); firmware re-reads every 10 s |
+
+### Mobile App Redesign
+
+With the command channel working end-to-end, the app was redesigned from a spray history viewer into a full smart-home control panel, in Apple-style dark and light themes.
+
+**Theme system:** `useColorScheme()` detects system preference. A `ThemeCtx` React Context holds the active palette `C` and a memoised `StyleSheet` `s` — all components call `useTheme()` rather than receiving props. The `StyleSheet` only rebuilds when the colour scheme changes.
+
+**New sections:**
+
+<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:24px 0">
+
+![AuraSync app — light mode: device card with spray button, Air Quality card (waiting for sensor), Settings card with Auto-Spray enabled and 5 s duration](images/devlog/app-ui-1.png "Top: spray button in idle state, Air Quality section waiting for sensor data, Settings card with Auto-Spray on and 5-second spray duration")
+
+![AuraSync app — light mode scrolled: Settings with Auto-Spray off, Usage card showing 33 total sprays / 2 m runtime / reservoir 26.0 ml, Recent Activity list](images/devlog/app-ui-2.png "Bottom: Settings card with Auto-Spray disabled, Usage card (33 total sprays, 2 min runtime, 26 / 30 ml reservoir), Recent Activity showing Voice Spray history")
+
+</div>
+
+| Section | What it shows |
+|---|---|
+| **Spray button** | 168 px circular gradient button; dims grey during cooldown; pulses orange while pending |
+| **Cooldown bar** | Animated progress bar inside the device card, draining from `/status/cooldownEndsAt` |
+| **Sensor card** | Live IAQ quality (gas kΩ, colour-coded Good / Moderate / Poor), temperature, humidity, context badge (Idle / Motion / Spraying / Cooldown) |
+| **Settings card** | Auto-spray toggle (Switch → `/settings/autoSprayEnabled`) and duration stepper (− / + buttons, 1–30 s → `/settings/sprayDurationS`) |
+| **Usage card** | Today's spray count, trigger-type breakdown (coloured chips), cumulative reservoir estimate (ml remaining out of 30 ml) |
+| **Push notifications** | Local notification via `expo-notifications` when Firebase detects a new auto-triggered spray (trigger ≠ `app`) |
+
 ## Next Steps
 
 | Done | Task | Description |
 |:-:|---|---|
 | <input type="checkbox" /> | **Annotated Shower Data Collection** | Collect 5+ shower sessions with BSEC2, annotate start/end times, append to `shower_annotations.csv` — target ≥ 150 positive windows. |
 | <input type="checkbox" /> | **Retrain Shower CNN with BSEC2 Data** | Replace `gas_norm` pipeline with `iaq` + `iaq_accuracy ≥ 1` filter; retrain 1D-CNN; target Val F1 ≥ 0.85. |
-| <input type="checkbox" /> | **Firebase Reverse Control** | App writes to `/commands/action`; ESP32 polls every 3 s, executes, and clears — bi-directional control without WebSocket. |
+| <input type="checkbox" checked /> | **Firebase Reverse Control** | App writes to `/commands/action`; ESP32 polls every 3 s, reads JSON, executes, and clears via `deleteNode` — bi-directional control without WebSocket. |
 | <input type="checkbox" /> | **Extreme Case VOC Testing** | Perfume, air freshener, cooking VOCs — test IAQ spike magnitude, recovery time, and classifier edge cases. |
