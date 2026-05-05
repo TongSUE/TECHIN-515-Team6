@@ -268,6 +268,8 @@ ESP32  →  deleteNode("/commands/action")
 
 **开发过程中修复的 Bug：** 原始 `pollFirebaseCommands` 使用 `getString` 读取节点（对 JSON 对象会静默失败）并通过 `setString(..., "")` 确认（设为空字符串 `""` 而非 `null`，但应用检测的是 `null`）。已修正：`getString` → `getJSON` + `FirebaseJsonData`，确认方式 → `deleteNode`。
 
+<div class="app-debug-photos-embed"></div>
+
 应用侧设有 10 秒超时，无确认则转为 `pending → error` 状态，3 秒后自动重置为 `idle`。
 
 指令中包含 `sprayDurationS` 字段。固件读取后为该次喷雾覆盖雾化时长——应用触发的喷雾可独立请求 1–30 秒的任意时长，不受存储设置影响。

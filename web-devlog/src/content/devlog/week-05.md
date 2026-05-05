@@ -271,6 +271,8 @@ App onValue:  snap.val() === null  →  command confirmed ✓
 
 **Bug fixed during implementation:** the original `pollFirebaseCommands` used `getString` to read the node (fails silently on a JSON object) and acknowledged by `setString(..., "")` (empty string ≠ `null` — the app checked for `null`). Fixed: `getString` → `getJSON` + `FirebaseJsonData`, acknowledgement → `deleteNode`.
 
+<div class="app-debug-photos-embed"></div>
+
 A 10-second timeout on the app side transitions `pending → error` if no acknowledgement arrives, with a 3-second auto-reset to `idle`.
 
 The app command includes a `sprayDurationS` field. The firmware reads this and overrides the atomizer duration for that spray — app-commanded sprays can request any 1–30 s independently of the stored setting.

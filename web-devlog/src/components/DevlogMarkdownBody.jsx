@@ -475,6 +475,34 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
           </div>
         )
       }
+      if (classes.includes('app-debug-photos-embed')) {
+        return (
+          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
+            <figure className="w-full text-center sm:max-w-[260px]">
+              <img
+                src={resolveAssetUrl('images/devlog/app-debug-triggered.jpg')}
+                alt="App showing spray triggered state — spray button pressed, command sent to ESP32"
+                loading="lazy"
+                className="w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                App → ESP32: spray command triggered via Firebase
+              </figcaption>
+            </figure>
+            <figure className="w-full text-center sm:max-w-[260px]">
+              <img
+                src={resolveAssetUrl('images/devlog/app-debug-cooldown.jpg')}
+                alt="App showing cooldown state — cooldown bar draining after spray confirmed"
+                loading="lazy"
+                className="w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                ESP32 → App: cooldown confirmed, bar draining in real time
+              </figcaption>
+            </figure>
+          </div>
+        )
+      }
       if (classes.includes('mentor-card-embed')) {
         return <MentorCard />
       }
