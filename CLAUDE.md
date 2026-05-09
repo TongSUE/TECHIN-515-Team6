@@ -19,11 +19,20 @@ AuraSync 是一个智能卫生间空气质量监测 + 自动喷香系统。
 - 每条 reading 字段: `temp_c`, `humidity_pct`, `pressure_hpa`, `gas_ohm`, `elapsed_s`, `iso`, `unix_ms`, `heater_stable`
 - 凭据在 `Code/VOCLogger/src/secrets.h`（已 gitignore）
 
+## 当前状态（2026-05-09）
+- **ML 第二轮准备就绪**：一周家庭卫生间数据已采集完毕，存于 Firebase
+- **下一步在 Windows 上**：`git pull` 后按顺序跑 fetch → preprocess → train
+- **第一轮结果**：IAQ RF Macro F1 = 0.77 ± 0.17，Shower CNN Val F1 = 0.77（均受训练数据不足限制）
+- **目标**：Shower CNN Val F1 ≥ 0.85（需要 ≥5 个标注洗澡 session）
+- Windows conda 环境：`aursync-ml`（已配置 PyTorch + RTX 4060 CUDA）
+
 ## 数据现状
 - 时间戳全部是 **UTC**（西雅图本地时间 = UTC - 7）
 - `gas_ohm` 基线约 **30k Ω**（曾喷强 VOC 导致基线漂移，原来约 50k+）
 - **不能用 gas_ohm 绝对值**训练，要用相对基线的变化量（滑动基线归一化）
-- `heater_stable=false` 的前 120 秒数据（传感器预热期）建议过滤掉
+- **2026-05-06 之前**的 session：`heater_stable` 因固件 bug 全部为 false，会被 fetch_firebase.py 过滤掉
+- **2026-05-06 之后**的 session：`heater_stable` 正常，数据有效
+- Firebase key 格式：2026-05-06 之前用 Firebase push ID，之后改为 unix 时间戳，`fetch_firebase.py` 两种格式都支持
 
 ## 已修复的 Bug
 1. **unix_ms 溢出**：`(int)(now * 1000LL)` → `(double)now * 1000.0`
@@ -31,6 +40,8 @@ AuraSync 是一个智能卫生间空气质量监测 + 自动喷香系统。
 3. **NTP 重试**：同步失败最多重试 3 次，每次 15 秒超时
 4. **Firebase 自动重启**：连续 5 次 push 失败后 `ESP.restart()`
 5. **历史 unix_ms 修复**：用 `Code/fix_unix_ms.py` 从 iso 字段反推已修正
+6. **heater_stable 永远 false**：`BSEC_OUTPUT_RUN_IN_STATUS` → `BSEC_OUTPUT_STABILIZATION_STATUS`（2026-05-06 修复）
+7. **Firebase SSL 超时**：改用 `setJSON`+时间戳 key，加 10s 超时限制，失败后 Firebase.reset() 恢复
 
 ## 现有 Python 脚本
 - `Code/plot_voc.py` — 从 Firebase 拉取指定 session 数据并画图
@@ -69,11 +80,12 @@ pip install -r Code/requirements.txt
 python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
 ```
 
-## 下一步 ML 任务
-- [ ] `Code/ml/fetch_firebase.py` — 导出所有 session 为 CSV
-- [ ] `Code/ml/preprocess.py` — 滑动基线归一化、洗澡事件标注、数据对齐
-- [ ] `Code/ml/train_shower.py` — 洗澡检测模型（建议 LSTM 或 1D-CNN）
-- [ ] `Code/ml/train_iaq.py` — 空气质量分类（建议 Random Forest 或 MLP）
+## 下一步 ML 任务（在 Windows 上执行）
+- [ ] `Code/ml/fetch_firebase.py` — 拉取所有新 session（包括一周家庭数据）
+- [ ] 手动补充洗澡标注到 `Data/shower_annotations.csv`（本地时间 → UTC +7h）
+- [ ] `Code/ml/preprocess.py` — 滑动基线归一化、重新生成训练窗口
+- [ ] `Code/ml/train_shower.py` — 重训 1D-CNN（目标 Val F1 ≥ 0.85）
+- [ ] `Code/ml/train_iaq.py` — 重训 Random Forest（更多 Moderate/Poor 样本）
 
 ## 注意事项
 - Kaggle 的两个数据集（第一个和 IoT Indoor AQ）传感器与 BME680 不兼容，不建议用
