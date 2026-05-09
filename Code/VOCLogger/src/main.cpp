@@ -105,7 +105,7 @@ void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bs
         latest.co2Equivalent = o.signal; break;
       case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
         latest.breathVoc     = o.signal; break;
-      case BSEC_OUTPUT_RUN_IN_STATUS:
+      case BSEC_OUTPUT_STABILIZATION_STATUS:
         latest.heaterStable  = (o.signal == 1.0f); break;
       default: break;
     }
@@ -116,33 +116,26 @@ void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bs
 
 // ── Wi-Fi ─────────────────────────────────────────────────────────────────────
 void connectWiFi() {
-  const char* ssids[] = { WIFI_SSID, WIFI_SSID_2 };
-  const char* pwds[]  = { WIFI_PASSWORD, WIFI_PASSWORD_2 };
-  const int   n       = sizeof(ssids) / sizeof(ssids[0]);
-
   for (int attempt = 1; attempt <= 3; attempt++) {
-    for (int i = 0; i < n; i++) {
-      if (strlen(ssids[i]) == 0) continue;
-      Serial.printf("Connecting to \"%s\" (attempt %d)", ssids[i], attempt);
-      WiFi.disconnect(true);
-      WiFi.mode(WIFI_STA);
-      WiFi.setSleep(WIFI_PS_MAX_MODEM);
-      WiFi.begin(ssids[i], pwds[i]);
-      unsigned long t = millis();
-      while (WiFi.status() != WL_CONNECTED) {
-        if (millis() - t > WIFI_TIMEOUT_MS) break;
-        delay(500);
-        Serial.print(".");
-      }
-      if (WiFi.status() == WL_CONNECTED) {
-        Serial.printf("\nWiFi OK  \"%s\"  IP=%s\n", ssids[i], WiFi.localIP().toString().c_str());
-        delay(2000);
-        return;
-      }
-      Serial.println("\nTimeout, trying next...");
+    Serial.printf("Connecting to \"%s\" (attempt %d)", WIFI_SSID, attempt);
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_STA);
+    WiFi.setSleep(WIFI_PS_MAX_MODEM);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    unsigned long t = millis();
+    while (WiFi.status() != WL_CONNECTED) {
+      if (millis() - t > WIFI_TIMEOUT_MS) break;
+      delay(500);
+      Serial.print(".");
     }
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.printf("\nWiFi OK  IP=%s\n", WiFi.localIP().toString().c_str());
+      delay(2000);
+      return;
+    }
+    Serial.println("\nTimeout, retrying...");
   }
-  Serial.println("ERROR: All WiFi networks failed");
+  Serial.println("ERROR: WiFi failed");
   setError(true);
 }
 
@@ -176,6 +169,8 @@ void initFirebase() {
   fbConfig.database_url               = FIREBASE_DATABASE_URL;
   fbConfig.signer.tokens.legacy_token = FIREBASE_DATABASE_SECRET;
   fbConfig.token_status_callback      = tokenStatusCallback;
+  fbConfig.timeout.socketConnection   = 10 * 1000;
+  fbConfig.timeout.serverResponse     = 10 * 1000;
   Firebase.begin(&fbConfig, &fbAuth);
   Firebase.reconnectWiFi(true);
   fbReady = true;
@@ -229,22 +224,24 @@ void pushReading(unsigned long elapsedS) {
   reading.set("iaq",            latest.iaq);
   reading.set("iaq_accuracy",   (int)latest.iaqAccuracy);
 
-  String pushId = Firebase.RTDB.pushJSON(&fbdo, readingsPath, &reading)
-                  ? fbdo.pushName() : "";
+  char pushPath[110];
+  snprintf(pushPath, sizeof(pushPath), "%s/%ld", readingsPath, (long)now);
+  bool ok = Firebase.RTDB.setJSON(&fbdo, pushPath, &reading);
 
-  if (pushId.length()) {
+  if (ok) {
     Serial.printf(
-      "[%lus] T=%.1f°C H=%.1f%% Gas=%dΩ | IAQ=%.0f(acc=%d) static=%.0f CO2=%.0fppm → %s\n",
+      "[%lus] T=%.1f°C H=%.1f%% Gas=%dΩ | IAQ=%.0f(acc=%d) → %ld\n",
       elapsedS,
       latest.temperature, latest.humidity, (int)latest.gasResistance,
-      latest.iaq, (int)latest.iaqAccuracy, latest.staticIaq, latest.co2Equivalent,
-      pushId.c_str()
+      latest.iaq, (int)latest.iaqAccuracy, (long)now
     );
     setError(false);
     fbFailCount = 0;
   } else {
     Serial.printf("Push FAILED: %s\n", fbdo.errorReason().c_str());
     setError(true);
+    Firebase.reset(&fbConfig);
+    Firebase.begin(&fbConfig, &fbAuth);
     if (++fbFailCount >= FB_FAIL_LIMIT) {
       Serial.println("Too many failures — restarting...");
       delay(1000);

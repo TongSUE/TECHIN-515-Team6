@@ -10,6 +10,7 @@ Code/**/*.bin
 Code/**/*.map
 Code/**/build/
 Code/**/.pio/
+Code/**/C:/
 
 # KiCAD backups
 KiCAD/**/*-backups/
