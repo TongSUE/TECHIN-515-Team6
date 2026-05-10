@@ -1,4 +1,4 @@
-/**
+/*
  * ============================================================
  * AuraSync v3 — Two-layer state machine
  * ============================================================
@@ -33,6 +33,9 @@
 #else
   #define SPRAY_CD_MS       180000UL  // 3 minutes
 #endif
+
+// Increase loop() task stack to avoid overflow during CNN inference (~15KB peak)
+SET_LOOP_TASK_STACK_SIZE(32 * 1024);
 
 // ── Includes ─────────────────────────────────────────────────
 #include <WiFi.h>
@@ -174,7 +177,7 @@ void startSpray(const char *trigger, bool bypassCD);
 void stopSpray();
 void updateSpray();
 void processVoiceCmd(int cmd);
-void bsecCallback(const bme68xData data, const bsecOutputs outputs, Bsec2 bsec);
+void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bsec);
 void pollFirebaseCommands();
 
 
@@ -183,7 +186,8 @@ void pollFirebaseCommands();
 // ════════════════════════════════════════════════════════════
 void setup() {
   Serial.begin(115200);
-  delay(500);
+  delay(5000);  // wait for USB CDC host to reconnect after reset
+  Serial.println("=== AuraSync boot ===");
 
   if (!psramInit()) Serial.println("ERROR:psram_failed");
 
@@ -383,13 +387,13 @@ void processVoiceCmd(int cmd) {
 //  BSEC2 callback — sensor data + ML inference
 //  Fires at ~3s (BSEC_SAMPLE_RATE_LP); decimated 3x to ~9s for ML.
 // ════════════════════════════════════════════════════════════
-void bsecCallback(const bme68xData data, const bsecOutputs outputs, Bsec2 bsec) {
+void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bsec) {
   float gas_ohm = 0.0f, temp_c = 0.0f, hum = 0.0f;
   for (uint8_t i = 0; i < outputs.nOutputs; i++) {
     switch (outputs.output[i].sensor_id) {
       case BSEC_OUTPUT_RAW_GAS:
         gas_ohm = outputs.output[i].signal; break;
-      case BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE:
+      case BSEC_OUTPUT_RAW_TEMPERATURE:
         temp_c  = outputs.output[i].signal; break;
       case BSEC_OUTPUT_RAW_HUMIDITY:
         hum     = outputs.output[i].signal; break;
@@ -421,13 +425,14 @@ void bsecCallback(const bme68xData data, const bsecOutputs outputs, Bsec2 bsec) 
       startSpray("p3_inflection", false);
   }
 
-  // ── P4: IAQ MLP (AWAKE + IDLE, 3 consecutive Poor readings) ───
+  // ── P4: IAQ MLP (AWAKE + IDLE, 5 consecutive Poor readings) ───
   if (fb_count >= 60) {
     float feat[10]; computeIAQFeatures(feat);
     int cls = predictIAQ(feat);  // 0=Good, 1=Moderate, 2=Poor
-    Serial.printf("[IAQ] cls=%d gn=%.3f hum=%.1f\n", cls, fb_get_gas_norm(0), fb_get_hum(0));
+    Serial.printf("[IAQ] cls=%d gn=%.3f hum=%.1f gas=%.0f\n",
+                  cls, fb_get_gas_norm(0), fb_get_hum(0), fb_at(0)->gas_ohm);
     if (cls == 2 && sysMode == MODE_AWAKE && sprayState == SPRAY_IDLE) {
-      if (++iaqPoorCount >= 3) { iaqPoorCount = 0; startSpray("p4_iaq", false); }
+      if (++iaqPoorCount >= 5) { iaqPoorCount = 0; startSpray("p4_iaq", false); }
     } else {
       iaqPoorCount = 0;
     }
@@ -435,7 +440,7 @@ void bsecCallback(const bme68xData data, const bsecOutputs outputs, Bsec2 bsec) 
 
   // ── P3: Shower CNN (any mode; triggers on shower-end transition) ─
   if (fb_count >= 30 && (++mlSampleCnt % 5 == 0)) {
-    float win[30][6]; computeShowerWindow(win);
+    static float win[30][6]; computeShowerWindow(win);
     float prob = predictShower(win);
     bool isShower = (prob >= CNN_THRESHOLD);
     Serial.printf("[CNN] shower_prob=%.2f\n", prob);
@@ -534,20 +539,24 @@ void pushSprayEvent(const char *trigger, unsigned long durationMs) {
 //  initBME680() — BSEC2
 // ════════════════════════════════════════════════════════════
 bool initBME680() {
-  bsecSensorConfiguration_t subs[] = {
-    {BSEC_OUTPUT_RAW_GAS,                             BSEC_SAMPLE_RATE_LP},
-    {BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE, BSEC_SAMPLE_RATE_LP},
-    {BSEC_OUTPUT_RAW_HUMIDITY,                        BSEC_SAMPLE_RATE_LP},
+  bsecSensor subs[] = {
+    BSEC_OUTPUT_IAQ,
+    BSEC_OUTPUT_RAW_GAS,
+    BSEC_OUTPUT_RAW_TEMPERATURE,
+    BSEC_OUTPUT_RAW_HUMIDITY,
   };
-  bsec2.attachCallback(bsecCallback);
-  if (!bsec2.begin(BME68X_I2C_ADDR_LOW, Wire)) {
+  if (!bsec2.begin(BME68X_I2C_ADDR_HIGH, Wire)) {
     Serial.println("ERROR:bme680_not_found");
     return false;
   }
-  if (!bsec2.updateSubscription(subs, 3, BSEC_SAMPLE_RATE_LP)) {
-    Serial.println("ERROR:bsec2_subscription");
-    return false;
+  if (!bsec2.updateSubscription(subs, 4, BSEC_SAMPLE_RATE_LP)) {
+    if (bsec2.status < 0) {
+      Serial.printf("ERROR:bsec2_subscription (status=%d)\n", (int)bsec2.status);
+      return false;
+    }
+    Serial.printf("WARN:bsec2_subscription (status=%d), continuing\n", (int)bsec2.status);
   }
+  bsec2.attachCallback(onBsecData);
   return true;
 }
 
@@ -614,7 +623,7 @@ bool initESPSR() {
   esp_mn_commands_add(CMD_ID_SPRAY, "spray");
   esp_mn_commands_add(CMD_ID_STOP,  "stop");
   esp_mn_commands_update();
-  multinet->set_det_threshold(model_data, 0.0f);  // max sensitivity
+  multinet->set_det_threshold(model_data, 0.6f);
   return true;
 }
 

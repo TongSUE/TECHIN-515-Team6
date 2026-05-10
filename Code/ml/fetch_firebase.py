@@ -20,6 +20,11 @@ DB_SECRET = "YsI1CXg3S4UiAHPZgUqJSRo9n6Vt1PIITw8VbR1z"
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "Data", "raw")
 
+# Sessions before this date have heater_stable always False due to a firmware bug
+# (BSEC_OUTPUT_RUN_IN_STATUS was used instead of BSEC_OUTPUT_STABILIZATION_STATUS).
+# For those sessions, fall back to elapsed_s >= 120 as the warm-up filter.
+HEATER_FIX_DATE = "20260506"
+
 
 def fb_get(path):
     url = f"{DB_URL}{path}.json?auth={DB_SECRET}"
@@ -29,13 +34,18 @@ def fb_get(path):
 
 def session_to_dataframe(session_id: str, session_data: dict) -> pd.DataFrame:
     readings = (session_data or {}).get("readings") or {}
+    buggy_heater = session_id[:8] < HEATER_FIX_DATE  # heater_stable always False before fix
     rows = []
     for push_id, r in readings.items():
         iso = r.get("iso", "")
         if not iso:
             continue
-        if r.get("heater_stable") is False:
-            continue
+        if buggy_heater:
+            if (r.get("elapsed_s") or 0) < 120:
+                continue
+        else:
+            if r.get("heater_stable") is False:
+                continue
         try:
             dt = datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
         except ValueError:
@@ -55,6 +65,9 @@ def session_to_dataframe(session_id: str, session_data: dict) -> pd.DataFrame:
             "humidity_pct":  r.get("humidity_pct"),
             "pressure_hpa":  r.get("pressure_hpa"),
             "gas_ohm":       gas,
+            "heater_stable": r.get("heater_stable"),
+            "iaq":           r.get("iaq"),
+            "iaq_accuracy":  r.get("iaq_accuracy"),
         })
     if not rows:
         return pd.DataFrame()

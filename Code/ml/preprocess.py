@@ -160,23 +160,21 @@ def split_sessions(session_ids: list, annotated_ids: list = None,
     rng.shuffle(annotated)
     rng.shuffle(others)
 
-    # Annotated sessions: first → train, second → val, rest → train
-    # (test gets no annotated sessions when there are only 1-2 total;
-    #  val F1 is used as the evaluation proxy in that case)
-    val_ids, test_ids, train_ids = [], [], []
-    for i, sid in enumerate(annotated):
-        if i == 0:
-            train_ids.append(sid)
-        elif i == 1:
-            val_ids.append(sid)
-        else:
-            train_ids.append(sid)
-
-    # Fill val/test with non-annotated sessions to reach target fractions
-    n_total   = len(session_ids)
+    n_total       = len(session_ids)
     n_val_target  = max(1, int(n_total * val_frac))
     n_test_target = max(1, int(n_total * test_frac))
 
+    # Distribute annotated sessions proportionally across val/test/train
+    # so that every split has positive shower windows for evaluation.
+    n_ann = len(annotated)
+    n_ann_test = max(1, round(n_ann * test_frac)) if n_ann >= 3 else 0
+    n_ann_val  = max(1, round(n_ann * val_frac))  if n_ann >= 2 else (1 if n_ann else 0)
+
+    test_ids  = annotated[:n_ann_test]
+    val_ids   = annotated[n_ann_test : n_ann_test + n_ann_val]
+    train_ids = annotated[n_ann_test + n_ann_val:]
+
+    # Fill val/test with non-annotated sessions to reach target fractions
     for sid in others:
         if len(val_ids) < n_val_target:
             val_ids.append(sid)

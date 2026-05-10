@@ -191,8 +191,15 @@ def main():
     best = rf if val_f1 >= mlp_f1 else mlp
     best_name = "RF" if val_f1 >= mlp_f1 else "MLP"
     model_path = os.path.join(MODELS_DIR, "iaq_rf_v1.pkl")
-    joblib.dump({"model": best, "label_encoder": le, "features": FEATURE_COLS}, model_path)
+    joblib.dump({"model": best, "label_encoder": le, "features": FEATURE_COLS,
+                 "model_type": best_name}, model_path)
     print(f"\nSaved {best_name} model → {model_path}")
+
+    # Always save RF separately for feature importance diagnostics
+    rf_path = os.path.join(MODELS_DIR, "iaq_rf_only.pkl")
+    joblib.dump({"model": rf, "label_encoder": le, "features": FEATURE_COLS,
+                 "model_type": "RF"}, rf_path)
+    print(f"Saved RF (diagnostics) → {rf_path}")
 
     # ── Record results ─────────────────────────────────────────────────────────
     results_path = os.path.join(MODELS_DIR, "results.json")

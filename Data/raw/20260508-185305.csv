@@ -1,0 +1,2 @@
+session_id,push_id,datetime_utc,unix_ms,elapsed_s,temp_c,humidity_pct,pressure_hpa,gas_ohm,heater_stable,iaq,iaq_accuracy
+20260508-185305,1778266397,2026-05-08 18:53:17+00:00,1778266397000,3,25.64124,44.11656,10.08629,101208,True,100.43977,0
