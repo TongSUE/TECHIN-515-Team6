@@ -30,10 +30,8 @@
 
 #ifdef TEST_MODE
   #define SPRAY_CD_MS        20000UL  // absolute cooldown (shared)
-  #define BME_SLEEP_MS       10000UL  // BME sampling interval while SLEEP
 #else
   #define SPRAY_CD_MS       180000UL  // 3 minutes
-  #define BME_SLEEP_MS       30000UL
 #endif
 
 // ── Includes ─────────────────────────────────────────────────
@@ -41,8 +39,10 @@
 #include <time.h>
 #include <Wire.h>
 #include <Firebase_ESP_Client.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BME680.h>
+#include <bsec2.h>
+#include "feature_buffer.h"
+#include "iaq_model.h"
+#include "shower_model.h"
 #include "driver/i2s_std.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -82,7 +82,6 @@ static i2s_chan_handle_t rx_chan = NULL;
 #define PIR_HOLD_MS        3000UL   // PIR hold to count as "detected"
 #define PIR_GRACE_MS       1500UL
 #define P3_PIR_WINDOW_MS   5000UL   // PIR counts as "active" for this long
-#define BME_AWAKE_MS       3000UL   // BME sampling interval while AWAKE
 #define P2_GAS_THRESHOLD   10000.0f // ohms; below = extreme odor
 #define VOICE_WINDOW_MS    7000UL   // Aura → Spray window
 #define FB_POLL_MS         3000UL
@@ -121,14 +120,22 @@ volatile float lastWordProb    = 0.0f;
 volatile char  lastWordStr[16] = {};
 
 // ════════════════════════════════════════════════════════════
-//  BME680
+//  BME680 / BSEC2
 // ════════════════════════════════════════════════════════════
-Adafruit_BME680 bme;
-bool            bmeReady    = false;
-static unsigned long lastBmeMs   = 0;
-static float    gasHistory[8]    = {};  // circular buffer (ohms)
-static int      gasHistIdx       = 0;
-static int      gasHistCount     = 0;
+Bsec2 bsec2;
+bool  bmeReady  = false;
+static int bsecCallCnt = 0;  // decimation counter (push every 3 LP callbacks ≈ 9s)
+
+// ── Ring buffer (defined here, declared extern in feature_buffer.h) ─────────
+FBReading fb_ring[BUF_SIZE] = {};
+int       fb_head            = 0;
+int       fb_count           = 0;
+
+// ── ML inference state ────────────────────────────────────────────────────────
+static bool wasShower    = false;
+static int  showerConsec = 0;
+static int  mlSampleCnt  = 0;
+static int  iaqPoorCount = 0;
 
 // ════════════════════════════════════════════════════════════
 //  ESP-SR
@@ -167,9 +174,8 @@ void startSpray(const char *trigger, bool bypassCD);
 void stopSpray();
 void updateSpray();
 void processVoiceCmd(int cmd);
-void pollBME();
+void bsecCallback(const bme68xData data, const bsecOutputs outputs, Bsec2 bsec);
 void pollFirebaseCommands();
-bool detectVocInflection();
 
 
 // ════════════════════════════════════════════════════════════
@@ -229,7 +235,7 @@ void loop() {
     voiceWindow = false;
   }
 
-  pollBME();               // P2 + P3
+  if (bmeReady) bsec2.run();  // P2 + P3/P4 via bsecCallback
   pollFirebaseCommands();  // App
 
   if (firebaseReady) Firebase.ready();
@@ -374,58 +380,69 @@ void processVoiceCmd(int cmd) {
 
 
 // ════════════════════════════════════════════════════════════
-//  P2 + P3 — BME680 sensor polling
+//  BSEC2 callback — sensor data + ML inference
+//  Fires at ~3s (BSEC_SAMPLE_RATE_LP); decimated 3x to ~9s for ML.
 // ════════════════════════════════════════════════════════════
-bool detectVocInflection() {
-  // Need 4+ samples; inflection = was declining, now rising
-  // Rising gas resistance = VOC concentration dropping = "after peak"
-  if (gasHistCount < 4) return false;
-  int i3 = (gasHistIdx - 4 + 8) % 8;
-  int i2 = (gasHistIdx - 3 + 8) % 8;
-  int i1 = (gasHistIdx - 2 + 8) % 8;
-  int i0 = (gasHistIdx - 1 + 8) % 8;
-  bool wasDeclining = (gasHistory[i2] < gasHistory[i3]) && (gasHistory[i1] < gasHistory[i2]);
-  bool nowRising    = (gasHistory[i0] > gasHistory[i1]);
-  return wasDeclining && nowRising;
-}
+void bsecCallback(const bme68xData data, const bsecOutputs outputs, Bsec2 bsec) {
+  float gas_ohm = 0.0f, temp_c = 0.0f, hum = 0.0f;
+  for (uint8_t i = 0; i < outputs.nOutputs; i++) {
+    switch (outputs.output[i].sensor_id) {
+      case BSEC_OUTPUT_RAW_GAS:
+        gas_ohm = outputs.output[i].signal; break;
+      case BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE:
+        temp_c  = outputs.output[i].signal; break;
+      case BSEC_OUTPUT_RAW_HUMIDITY:
+        hum     = outputs.output[i].signal; break;
+    }
+  }
 
-void pollBME() {
-  if (!bmeReady) return;
-  unsigned long interval = (sysMode == MODE_AWAKE) ? BME_AWAKE_MS : BME_SLEEP_MS;
-  if (millis() - lastBmeMs < interval) return;
-  lastBmeMs = millis();
-
-  if (!bme.performReading()) return;
-
-  float gasR = (float)bme.gas_resistance;  // ohms
-
-  // Store in history ring buffer
-  gasHistory[gasHistIdx] = gasR;
-  gasHistIdx  = (gasHistIdx + 1) % 8;
-  if (gasHistCount < 8) gasHistCount++;
-
-  // ── P2: extreme odor — works in any mode, waits during COOLDOWN ──
-  if (gasR < P2_GAS_THRESHOLD) {
-    if (sprayState == SPRAY_SPRAYING) {
-      // already spraying, do nothing
-    } else if (sprayState == SPRAY_COOLDOWN) {
-      p2Pending = true;  // fire when CD expires
-    } else {
-      // SPRAY_IDLE (from SLEEP or AWAKE)
-      if (sysMode == MODE_SLEEP) {
-        enterMode(MODE_AWAKE);
-        lastPirHighMs = millis();  // reset awake timer
-      }
+  // ── P2: extreme odor (any mode, respects spray state machine) ──
+  if (gas_ohm > 0.0f && gas_ohm < P2_GAS_THRESHOLD) {
+    if (sprayState == SPRAY_COOLDOWN) {
+      p2Pending = true;
+    } else if (sprayState == SPRAY_IDLE) {
+      if (sysMode == MODE_SLEEP) { enterMode(MODE_AWAKE); lastPirHighMs = millis(); }
       startSpray("p2_voc", false);
     }
   }
 
-  // ── P3: PIR + VOC inflection — AWAKE + IDLE only, respects CD ──
-  if (sysMode == MODE_AWAKE && sprayState == SPRAY_IDLE) {
-    bool pirRecent = (millis() - lastPirHighMs < P3_PIR_WINDOW_MS);
-    if (pirRecent && detectVocInflection()) {
+  // ── Decimate: push to ring buffer every 3 callbacks (~9 s) ────
+  if (++bsecCallCnt % 3 != 0 || gas_ohm <= 0.0f) return;
+  fb_push(gas_ohm, temp_c, hum);
+
+  // ── P3-old: VOC inflection + PIR (AWAKE + IDLE only) ───────────
+  if (sysMode == MODE_AWAKE && sprayState == SPRAY_IDLE && fb_count >= 4) {
+    float g0 = fb_get_gas_norm(0), g1 = fb_get_gas_norm(1);
+    float g2 = fb_get_gas_norm(2), g3 = fb_get_gas_norm(3);
+    bool wasDeclining = (g2 < g3) && (g1 < g2);
+    bool nowRising    = (g0 > g1);
+    bool pirRecent    = (millis() - lastPirHighMs < P3_PIR_WINDOW_MS);
+    if (wasDeclining && nowRising && pirRecent)
       startSpray("p3_inflection", false);
+  }
+
+  // ── P4: IAQ MLP (AWAKE + IDLE, 3 consecutive Poor readings) ───
+  if (fb_count >= 60) {
+    float feat[10]; computeIAQFeatures(feat);
+    int cls = predictIAQ(feat);  // 0=Good, 1=Moderate, 2=Poor
+    Serial.printf("[IAQ] cls=%d gn=%.3f hum=%.1f\n", cls, fb_get_gas_norm(0), fb_get_hum(0));
+    if (cls == 2 && sysMode == MODE_AWAKE && sprayState == SPRAY_IDLE) {
+      if (++iaqPoorCount >= 3) { iaqPoorCount = 0; startSpray("p4_iaq", false); }
+    } else {
+      iaqPoorCount = 0;
     }
+  }
+
+  // ── P3: Shower CNN (any mode; triggers on shower-end transition) ─
+  if (fb_count >= 30 && (++mlSampleCnt % 5 == 0)) {
+    float win[30][6]; computeShowerWindow(win);
+    float prob = predictShower(win);
+    bool isShower = (prob >= CNN_THRESHOLD);
+    Serial.printf("[CNN] shower_prob=%.2f\n", prob);
+    if (wasShower && !isShower && showerConsec >= 6)
+      startSpray("p3_shower_end", false);
+    showerConsec = isShower ? showerConsec + 1 : 0;
+    wasShower    = isShower;
   }
 }
 
@@ -514,18 +531,23 @@ void pushSprayEvent(const char *trigger, unsigned long durationMs) {
 
 
 // ════════════════════════════════════════════════════════════
-//  initBME680()
+//  initBME680() — BSEC2
 // ════════════════════════════════════════════════════════════
 bool initBME680() {
-  if (!bme.begin(0x76) && !bme.begin(0x77)) {
+  bsecSensorConfiguration_t subs[] = {
+    {BSEC_OUTPUT_RAW_GAS,                             BSEC_SAMPLE_RATE_LP},
+    {BSEC_OUTPUT_SENSOR_HEAT_COMPENSATED_TEMPERATURE, BSEC_SAMPLE_RATE_LP},
+    {BSEC_OUTPUT_RAW_HUMIDITY,                        BSEC_SAMPLE_RATE_LP},
+  };
+  bsec2.attachCallback(bsecCallback);
+  if (!bsec2.begin(BME68X_I2C_ADDR_LOW, Wire)) {
     Serial.println("ERROR:bme680_not_found");
     return false;
   }
-  bme.setTemperatureOversampling(BME680_OS_8X);
-  bme.setHumidityOversampling(BME680_OS_2X);
-  bme.setPressureOversampling(BME680_OS_4X);
-  bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
-  bme.setGasHeater(320, 150);  // 320°C heater, 150ms
+  if (!bsec2.updateSubscription(subs, 3, BSEC_SAMPLE_RATE_LP)) {
+    Serial.println("ERROR:bsec2_subscription");
+    return false;
+  }
   return true;
 }
 
