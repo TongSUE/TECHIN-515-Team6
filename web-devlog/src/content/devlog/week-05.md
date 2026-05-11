@@ -2,7 +2,7 @@
 week: 5
 date: "April 28 - May 4, 2026"
 title: "Data Collection, ML Pipeline, BSEC2 Firmware & App Redesign"
-status: "In Progress"
+status: "Completed"
 show_next_steps: true
 summary: >
   The team collected approximately 3 days of continuous BME680 data (16 927
@@ -311,7 +311,7 @@ With the command channel working end-to-end, the app was redesigned from a spray
 
 | Done | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **Shower Data Collection & CNN Retraining** | Collect 5+ BSEC2 shower sessions with annotated start/end times (≥150 positive windows); retrain 1D-CNN replacing `gas_norm` with calibrated `iaq` + `iaq_accuracy ≥ 1`; target Val F1 ≥ 0.85. |
+| <input type="checkbox" checked /> | **Shower Data Collection & CNN Retraining** | Collect 5+ BSEC2 shower sessions with annotated start/end times (≥150 positive windows); retrain 1D-CNN replacing `gas_norm` with calibrated `iaq` + `iaq_accuracy ≥ 1`; target Val F1 ≥ 0.85. |
 | <input type="checkbox" /> | **Extreme Case VOC Testing** | Perfume, air freshener, cooking VOCs — test IAQ spike magnitude, recovery time, and classifier edge cases. |
-| <input type="checkbox" /> | **Medium-Fidelity Enclosure** | Design and fabricate a housing for all components (ESP32-S3, BME680, PIR, atomizer, battery) — untethered form factor required for Milestone 2 demo. |
-| <input type="checkbox" /> | **PCB Design & Fabrication** | Integrate ESP32-S3, INMP441, BME680, PIR, MOSFET, MT3608 boost, and LiPo connector onto a single PCB; route traces, verify footprints, and send for fabrication. |
+| <input type="checkbox" checked /> | **Medium-Fidelity Enclosure** | Design and fabricate a housing for all components (ESP32-S3, BME680, PIR, atomizer, battery) — untethered form factor required for Milestone 2 demo. |
+| <input type="checkbox" checked /> | **PCB Design & Fabrication** | Integrate ESP32-S3, INMP441, BME680, PIR, MOSFET, MT3608 boost, and LiPo connector onto a single PCB; route traces, verify footprints, and send for fabrication. |

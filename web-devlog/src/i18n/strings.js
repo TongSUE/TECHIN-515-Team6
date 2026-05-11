@@ -73,8 +73,8 @@ export const strings = {
       footer: 'MSTI Hardware–Software Lab II · Team 6 · AuraSync',
       people: [
         {
-          role: 'Firmware · Voice · App · Devlog',
-          bio: 'Leads firmware architecture and the devlog site. Built the ESP-SR wake-word pipeline, I2S microphone bring-up, KiCAD schematic updates, the unified AuraSync state machine, and the mobile app — alongside this devlog site.',
+          role: 'Firmware · Voice · App · PCB · Devlog',
+          bio: 'Leads firmware architecture and the devlog site. Built the ESP-SR wake-word pipeline, I2S microphone bring-up, KiCAD schematic updates, the unified AuraSync state machine, the mobile app, and the PCB v1 — alongside this devlog site.',
           weeks: [
             {
               label: 'Week 1',
@@ -118,11 +118,19 @@ export const strings = {
                 'Devlog write-up',
               ],
             },
+            {
+              label: 'Week 6',
+              items: [
+                'PCB design v1 — circular board R=45mm, JST connector footprints, LPKF fabricated',
+                'Milestone 2 presentation slides',
+                'Devlog write-up',
+              ],
+            },
           ],
         },
         {
-          role: 'Hardware · ML Pipeline · Data Collection · CAD',
-          bio: 'Drives hardware integration and data science. Brought up the BME680 and built the first end-to-end ML pipeline — IAQ Random Forest + Shower 1D-CNN — while managing 3D enclosure prototyping and milestone presentations.',
+          role: 'Hardware · ML · Firmware · Data Collection · CAD',
+          bio: 'Drives hardware integration and data science. Brought up the BME680, built the end-to-end ML pipeline — IAQ Random Forest + Shower 1D-CNN — integrated trained models into firmware as C weight arrays, and managed enclosure prototyping and milestone presentations.',
           weeks: [
             {
               label: 'Week 1',
@@ -162,6 +170,14 @@ export const strings = {
                 'IAQ Random Forest pipeline (CV Macro F1 0.77 ± 0.17)',
                 'Shower 1D-CNN detector (Val F1 0.77, AUC 0.94)',
                 'BSEC2 firmware upgrade (self-calibrating IAQ index)',
+              ],
+            },
+            {
+              label: 'Week 6',
+              items: [
+                'ML firmware integration — IAQ MLP + Shower CNN exported as C weight arrays, on-device inference (Round 2: Val F1 0.902)',
+                'Enclosure v2 redesign — cylindrical two-part snap-fit, PLA printed',
+                'Milestone 2 presentation slides',
               ],
             },
           ],
@@ -271,8 +287,8 @@ export const strings = {
       footer: 'MSTI 硬件-软件实验室 II · 第 6 组 · AuraSync',
       people: [
         {
-          role: '固件 · 语音 · 应用 · 开发日志',
-          bio: '负责固件架构与开发日志网站。主导了 ESP-SR 唤醒词流程、I2S 麦克风调试、KiCAD 原理图更新、AuraSync 统一状态机以及移动端应用——同时从零搭建了本开发日志网站。',
+          role: '固件 · 语音 · 应用 · PCB · 开发日志',
+          bio: '负责固件架构与开发日志网站。主导了 ESP-SR 唤醒词流程、I2S 麦克风调试、KiCAD 原理图更新、AuraSync 统一状态机、移动端应用和 PCB v1 设计——同时从零搭建了本开发日志网站。',
           weeks: [
             {
               label: '第 1 周',
@@ -308,11 +324,19 @@ export const strings = {
                 '开发日志撰写',
               ],
             },
+            {
+              label: '第 6 周',
+              items: [
+                'PCB 设计 v1——圆形 R=45mm，JST 接插件封装，LPKF 铣床打样',
+                'Milestone 2 幻灯片',
+                '开发日志撰写',
+              ],
+            },
           ],
         },
         {
-          role: '硬件 · 机器学习 · 数据采集 · CAD',
-          bio: '负责硬件集成与数据科学。完成了 BME680 调试并构建了首个端到端 ML 流水线——IAQ 随机森林 + 淋浴 1D-CNN——同时管理 3D 外壳原型设计并主导里程碑演示。',
+          role: '硬件 · 机器学习 · 固件 · 数据采集 · CAD',
+          bio: '负责硬件集成与数据科学。完成了 BME680 调试，构建了端到端 ML 流水线——IAQ 随机森林 + 淋浴 1D-CNN——并将训练好的模型以 C 权重数组形式集成进固件实现端侧推理，同时管理外壳原型设计并主导里程碑演示。',
           weeks: [
             {
               label: '第 1 周',
@@ -344,6 +368,14 @@ export const strings = {
                 'IAQ 随机森林流水线（CV Macro F1 0.77 ± 0.17）',
                 '淋浴 1D-CNN 检测器（Val F1 0.77，AUC 0.94）',
                 'BSEC2 固件升级（自标定 IAQ 指数）',
+              ],
+            },
+            {
+              label: '第 6 周',
+              items: [
+                'ML 固件集成——IAQ MLP + 淋浴 CNN 导出为 C 权重数组，端侧推理（第二轮 Val F1 0.902）',
+                '外壳 v2 重设计——圆柱形两段卡扣结构，PLA 打印',
+                'Milestone 2 幻灯片',
               ],
             },
           ],

@@ -9,7 +9,7 @@
 #   3. 右键本文件 → "用 PowerShell 运行"
 # ============================================================
 
-$PORT     = "COM3"    # ← 改成你的实际 COM 端口
+$PORT     = "COM4"    # ← 改成你的实际 COM 端口
 
 $ESPTOOL  = "F:\Arduino_data\packages\esp32\tools\esptool_py\5.2.0\esptool.exe"
 $MODEL    = "F:\Arduino_data\packages\esp32\tools\esp32s3-libs\3.3.8\esp_sr\srmodels.bin"

@@ -2,7 +2,7 @@
 week: 3
 date: "2026年4月14日 - 4月20日"
 title: "语音识别、Firebase 与 PIR——构建日志"
-status: "In Progress"
+status: "Completed"
 show_next_steps: true
 summary: >
   Yutong 验证了 PSRAM 和 SPH0645 麦克风，搭建了完整的 ESP-SR 语音识别流水线（包含唤醒词状态机与实时串口监控），接入 Firebase 实时数据库和云端仪表盘，并将 KiCAD 原理图更新至 v2.0。Lucia 为 HC-SR501 PIR 传感器接线，通过存在感触发超声波雾化器，完成里程碑 1 演示幻灯片并提交预算更新表格。BME680 VOC 传感器仍在运输中。

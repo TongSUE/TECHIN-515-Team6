@@ -503,6 +503,62 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
           </div>
         )
       }
+      if (classes.includes('enclosure-concept-embed')) {
+        return (
+          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
+            <figure className="w-full text-center sm:max-w-[280px]">
+              <img
+                src={resolveAssetUrl('images/devlog/enclosure-v2-concept.png')}
+                alt="AI-generated concept render of AuraSync — transparent upper cylinder with glowing fragrance bottle visible inside, white base with PIR and LED dots"
+                loading="lazy"
+                className="w-full rounded-xl object-contain shadow-sm"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Target vision — transparent upper, breathing LED, fragrance bottle visible
+              </figcaption>
+            </figure>
+            <figure className="w-full text-center sm:max-w-[280px]">
+              <img
+                src={resolveAssetUrl('images/devlog/enclosure-v2-3d-model.png')}
+                alt="3D CAD model of Enclosure v2 — cylindrical two-part snap-fit with perforated lower base showing microphone slots, PIR window, and LED dot"
+                loading="lazy"
+                className="w-full rounded-xl object-contain shadow-sm"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                CAD model — upper cylinder (atomizer) snaps onto perforated lower base (sensors + PCB)
+              </figcaption>
+            </figure>
+          </div>
+        )
+      }
+      if (classes.includes('enclosure-printed-embed')) {
+        return (
+          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
+            <figure className="w-full text-center sm:max-w-[280px]">
+              <img
+                src={resolveAssetUrl('images/devlog/enclosure-v2-front.png')}
+                alt="Enclosure v2 front view — yellow PLA cylindrical prototype showing microphone perforations, PIR sensor, and LED indicator on the lower base"
+                loading="lazy"
+                className="w-full rounded-xl object-contain shadow-sm"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Front — microphone perforations, PIR, and LED indicator
+              </figcaption>
+            </figure>
+            <figure className="w-full text-center sm:max-w-[280px]">
+              <img
+                src={resolveAssetUrl('images/devlog/enclosure-v2-side.png')}
+                alt="Enclosure v2 side view — upper cylinder separated from lower disc base, showing snap-fit interface and overall cylindrical form factor"
+                loading="lazy"
+                className="w-full rounded-xl object-contain shadow-sm"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Side — two-part snap-fit: upper cylinder lifts off the lower base
+              </figcaption>
+            </figure>
+          </div>
+        )
+      }
       if (classes.includes('mentor-card-embed')) {
         return <MentorCard />
       }

@@ -2,7 +2,7 @@
 week: 3
 date: "April 14 - April 20, 2026"
 title: "Voice, Firebase & PIR — Build Log"
-status: "In Progress"
+status: "Completed"
 show_next_steps: true
 summary: >
   Yutong validated PSRAM and the SPH0645 microphone, built the full ESP-SR
