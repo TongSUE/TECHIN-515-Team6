@@ -1,20 +1,26 @@
 /*
  * ============================================================
- * AuraSync v3 — Two-layer state machine
+ * AuraSync v4 — Two-layer state machine + on-device ML
  * ============================================================
  * Layer 1 — System mode:  SLEEP ↔ AWAKE  (PIR-driven)
  * Layer 2 — Spray state:  IDLE → SPRAYING → COOLDOWN → IDLE
  *
- * Priority (high → low):
- *   P1 Voice / App  bypass CD; Spray only in AWAKE; Stop always
- *   P2 BME680 VOC   works in SLEEP; waits (pending) during CD
- *   P3 PIR+VOC      AWAKE+IDLE only; respects CD
+ * Trigger priority (high → low):
+ *   P1  Voice / App     any mode incl. SLEEP; bypass cooldown
+ *   P2  IAQ MLP         any mode incl. SLEEP; queues during cooldown
+ *                       (consecutive Poor readings; replaces raw gas_ohm threshold)
+ *   P3  Shower CNN      any mode incl. SLEEP; fires on shower-end transition
+ *   P3  VOC inflection  AWAKE + IDLE only; gas_norm ↓ then ↑ + PIR within 5 s
+ *
+ * ML models (on-device inference, no cloud):
+ *   iaq_model.h    — MLP (64-32), StandardScaler, 3 classes (Good/Moderate/Poor)
+ *   shower_model.h — 1D-CNN, threshold 0.65, 30×6 sliding window
  *
  * Build:
  *   Partition Scheme → Custom (partitions.csv)
  *   PSRAM            → OPI PSRAM
  *   Libraries        → Firebase Arduino Client (Mobizt)
- *                      Adafruit BME680 + Adafruit Unified Sensor
+ *                      Bosch BSEC2
  *
  * Wiring:
  *   SPH0645 SCK → D8  (GPIO7)   SPH0645 WS  → D9  (GPIO8)
@@ -79,13 +85,24 @@ static i2s_chan_handle_t rx_chan = NULL;
 #define CMD_ID_SPRAY  1
 #define CMD_ID_STOP   2
 
+// ── Demo mode ────────────────────────────────────────────────
+// Uncomment for classroom demo: lower thresholds so P4 fires in ~20s
+// and Shower CNN fires after ~90s. Comment out for production.
+// #define DEMO_MODE
+
 // ── Timing ───────────────────────────────────────────────────
 #define SPRAY_MS           5000UL   // atomizer on-duration
 #define AWAKE_TIMEOUT_MS  60000UL   // no PIR for 60s → SLEEP
 #define PIR_HOLD_MS        3000UL   // PIR hold to count as "detected"
 #define PIR_GRACE_MS       1500UL
 #define P3_PIR_WINDOW_MS   5000UL   // PIR counts as "active" for this long
-#define P2_GAS_THRESHOLD   10000.0f // ohms; below = extreme odor
+#ifdef DEMO_MODE
+  #define IAQ_POOR_COUNT        2    // 2 × 9s = ~18s of bad air → spray
+  #define SHOWER_CONSEC_MIN     2    // 2 × 45s = ~90s shower detected → spray
+#else
+  #define IAQ_POOR_COUNT        5    // 5 × 9s = ~45s
+  #define SHOWER_CONSEC_MIN     6    // 6 × 45s = ~270s
+#endif
 #define VOICE_WINDOW_MS    7000UL   // Aura → Spray window
 #define FB_POLL_MS         3000UL
 
@@ -329,7 +346,7 @@ void updateSpray() {
         enterSprayState(SPRAY_IDLE);
         if (p2Pending) {
           p2Pending = false;
-          startSpray("p2_voc", false);
+          startSpray("iaq_poor", false);
         }
       }
       break;
@@ -400,21 +417,33 @@ void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bs
     }
   }
 
-  // ── P2: extreme odor (any mode, respects spray state machine) ──
-  if (gas_ohm > 0.0f && gas_ohm < P2_GAS_THRESHOLD) {
-    if (sprayState == SPRAY_COOLDOWN) {
-      p2Pending = true;
-    } else if (sprayState == SPRAY_IDLE) {
-      if (sysMode == MODE_SLEEP) { enterMode(MODE_AWAKE); lastPirHighMs = millis(); }
-      startSpray("p2_voc", false);
-    }
-  }
-
   // ── Decimate: push to ring buffer every 3 callbacks (~9 s) ────
   if (++bsecCallCnt % 3 != 0 || gas_ohm <= 0.0f) return;
   fb_push(gas_ohm, temp_c, hum);
 
-  // ── P3-old: VOC inflection + PIR (AWAKE + IDLE only) ───────────
+  // ── IAQ: MLP classifier (any mode; wakes system; queues during cooldown) ──
+  // Replaces raw gas_ohm threshold — model uses gas_norm + humidity + temp features.
+  if (fb_count >= 60) {
+    float feat[10]; computeIAQFeatures(feat);
+    int cls = predictIAQ(feat);  // 0=Good, 1=Moderate, 2=Poor
+    Serial.printf("[IAQ] cls=%d gn=%.3f hum=%.1f gas=%.0f\n",
+                  cls, fb_get_gas_norm(0), fb_get_hum(0), fb_at(0)->gas_ohm);
+    if (cls == 2) {
+      if (++iaqPoorCount >= IAQ_POOR_COUNT) {
+        iaqPoorCount = 0;
+        if (sprayState == SPRAY_COOLDOWN) {
+          p2Pending = true;
+        } else if (sprayState == SPRAY_IDLE) {
+          if (sysMode == MODE_SLEEP) { enterMode(MODE_AWAKE); lastPirHighMs = millis(); }
+          startSpray("iaq_poor", false);
+        }
+      }
+    } else {
+      iaqPoorCount = 0;
+    }
+  }
+
+  // ── P3: VOC inflection + PIR (AWAKE + IDLE only) ────────────────
   if (sysMode == MODE_AWAKE && sprayState == SPRAY_IDLE && fb_count >= 4) {
     float g0 = fb_get_gas_norm(0), g1 = fb_get_gas_norm(1);
     float g2 = fb_get_gas_norm(2), g3 = fb_get_gas_norm(3);
@@ -425,26 +454,13 @@ void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bs
       startSpray("p3_inflection", false);
   }
 
-  // ── P4: IAQ MLP (AWAKE + IDLE, 5 consecutive Poor readings) ───
-  if (fb_count >= 60) {
-    float feat[10]; computeIAQFeatures(feat);
-    int cls = predictIAQ(feat);  // 0=Good, 1=Moderate, 2=Poor
-    Serial.printf("[IAQ] cls=%d gn=%.3f hum=%.1f gas=%.0f\n",
-                  cls, fb_get_gas_norm(0), fb_get_hum(0), fb_at(0)->gas_ohm);
-    if (cls == 2 && sysMode == MODE_AWAKE && sprayState == SPRAY_IDLE) {
-      if (++iaqPoorCount >= 5) { iaqPoorCount = 0; startSpray("p4_iaq", false); }
-    } else {
-      iaqPoorCount = 0;
-    }
-  }
-
   // ── P3: Shower CNN (any mode; triggers on shower-end transition) ─
   if (fb_count >= 30 && (++mlSampleCnt % 5 == 0)) {
     static float win[30][6]; computeShowerWindow(win);
     float prob = predictShower(win);
     bool isShower = (prob >= CNN_THRESHOLD);
     Serial.printf("[CNN] shower_prob=%.2f\n", prob);
-    if (wasShower && !isShower && showerConsec >= 6)
+    if (wasShower && !isShower && showerConsec >= SHOWER_CONSEC_MIN)
       startSpray("p3_shower_end", false);
     showerConsec = isShower ? showerConsec + 1 : 0;
     wasShower    = isShower;
@@ -468,10 +484,9 @@ void pollFirebaseCommands() {
   Firebase.RTDB.setString(&fbCmd, "/commands/action", "");
 
   if (action == "spray") {
-    // App Spray: same restriction as voice — only in AWAKE
-    if (sysMode == MODE_AWAKE) {
-      startSpray("app", true);  // bypass CD
-    }
+    // App Spray: any mode incl. SLEEP; bypass CD; wakes system
+    startSpray("app", true);
+    if (sysMode == MODE_SLEEP) { enterMode(MODE_AWAKE); lastPirHighMs = millis(); }
   } else if (action == "stop") {
     // App Stop: works in any mode
     if (sprayState == SPRAY_SPRAYING) stopSpray();

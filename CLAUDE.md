@@ -19,11 +19,11 @@ AuraSync 是一个智能卫生间空气质量监测 + 自动喷香系统。
 - 每条 reading 字段: `temp_c`, `humidity_pct`, `pressure_hpa`, `gas_ohm`, `elapsed_s`, `iso`, `unix_ms`, `heater_stable`
 - 凭据在 `Code/VOCLogger/src/secrets.h`（已 gitignore）
 
-## 当前状态（2026-05-09）
-- **ML 第二轮准备就绪**：一周家庭卫生间数据已采集完毕，存于 Firebase
-- **下一步在 Windows 上**：`git pull` 后按顺序跑 fetch → preprocess → train
-- **第一轮结果**：IAQ RF Macro F1 = 0.77 ± 0.17，Shower CNN Val F1 = 0.77（均受训练数据不足限制）
-- **目标**：Shower CNN Val F1 ≥ 0.85（需要 ≥5 个标注洗澡 session）
+## 当前状态（2026-05-10）
+- **ML 第二轮已完成，模型已部署进固件**
+- **Round 1 结果**：IAQ RF CV Macro F1 = 0.77 ± 0.17，Shower CNN Val F1 = 0.77
+- **Round 2 结果**：IAQ MLP (64-32) Val Macro F1 = 0.949；Shower CNN Val F1 = 0.885，threshold sweep peak = 0.902，AUC = 0.999
+- **部署模型**：IAQ MLP（非 RF，MLP val F1 更高）+ Shower 1D-CNN，均已导出为 C 头文件并烧录进 `Code/AuraSync/AuraSync.ino`
 - Windows conda 环境：`aursync-ml`（已配置 PyTorch + RTX 4060 CUDA）
 
 ## 数据现状
@@ -80,12 +80,13 @@ pip install -r Code/requirements.txt
 python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
 ```
 
-## 下一步 ML 任务（在 Windows 上执行）
-- [ ] `Code/ml/fetch_firebase.py` — 拉取所有新 session（包括一周家庭数据）
-- [ ] 手动补充洗澡标注到 `Data/shower_annotations.csv`（本地时间 → UTC +7h）
-- [ ] `Code/ml/preprocess.py` — 滑动基线归一化、重新生成训练窗口
-- [ ] `Code/ml/train_shower.py` — 重训 1D-CNN（目标 Val F1 ≥ 0.85）
-- [ ] `Code/ml/train_iaq.py` — 重训 Random Forest（更多 Moderate/Poor 样本）
+## ML 任务状态（已完成）
+- [x] `Code/ml/fetch_firebase.py` — 拉取所有 session（43 sessions，47,738 readings）
+- [x] 手动标注 9 个洗澡事件到 `Data/shower_annotations.csv`
+- [x] `Code/ml/preprocess.py` — 滑动基线归一化、生成训练窗口
+- [x] `Code/ml/train_shower.py` — 重训 1D-CNN，Val F1 = 0.885（超过 0.85 目标）
+- [x] `Code/ml/train_iaq.py` — 训练 MLP（64-32），Val Macro F1 = 0.949（RF 作为对比）
+- [x] `Code/ml/export_models.py` — 导出权重到 C 头文件，烧录进 AuraSync 固件
 
 ## 注意事项
 - Kaggle 的两个数据集（第一个和 IoT Indoor AQ）传感器与 BME680 不兼容，不建议用
