@@ -86,22 +86,31 @@ static i2s_chan_handle_t rx_chan = NULL;
 #define CMD_ID_STOP   2
 
 // ── Demo mode ────────────────────────────────────────────────
-// Uncomment for classroom demo: lower thresholds so P4 fires in ~20s
-// and Shower CNN fires after ~90s. Comment out for production.
-// #define DEMO_MODE
+// Uncomment for classroom demo: ~30s warmup, faster triggers.
+// Comment out for production (9-min warmup, conservative thresholds).
+#define DEMO_MODE
 
 // ── Timing ───────────────────────────────────────────────────
 #define SPRAY_MS           5000UL   // atomizer on-duration
 #define AWAKE_TIMEOUT_MS  60000UL   // no PIR for 60s → SLEEP
 #define PIR_HOLD_MS        3000UL   // PIR hold to count as "detected"
 #define PIR_GRACE_MS       1500UL
-#define P3_PIR_WINDOW_MS   5000UL   // PIR counts as "active" for this long
 #ifdef DEMO_MODE
-  #define IAQ_POOR_COUNT        2    // 2 × 9s = ~18s of bad air → spray
-  #define SHOWER_CONSEC_MIN     2    // 2 × 45s = ~90s shower detected → spray
+  #define BSEC_DECIMATE            1    // push every callback (~3s per reading)
+  #define IAQ_MIN_COUNT           10    // start IAQ after 10 readings (~30s)
+  #define CNN_MIN_COUNT           10    // start CNN after 10 readings (~30s)
+  #define IAQ_POOR_COUNT           2    // 2 × 3s = ~6s of bad air → spray
+  #define SHOWER_CONSEC_MIN        2    // 2 × 15s = ~30s shower → spray
+  #define P3_PIR_WINDOW_MS    60000UL  // PIR counts as "active" for 60s (demo)
+  #define P3_INFLECT_WINDOW_MS 60000UL // inflection latch valid for 60s (demo)
 #else
-  #define IAQ_POOR_COUNT        5    // 5 × 9s = ~45s
-  #define SHOWER_CONSEC_MIN     6    // 6 × 45s = ~270s
+  #define BSEC_DECIMATE            3    // push every 3rd callback (~9s per reading)
+  #define IAQ_MIN_COUNT           60    // start IAQ after 60 readings (~9min)
+  #define CNN_MIN_COUNT           30    // start CNN after 30 readings (~4.5min)
+  #define IAQ_POOR_COUNT           5    // 5 × 9s = ~45s
+  #define SHOWER_CONSEC_MIN        6    // 6 × 45s = ~270s
+  #define P3_PIR_WINDOW_MS      5000UL  // PIR counts as "active" for 5s
+  #define P3_INFLECT_WINDOW_MS 30000UL  // inflection latch valid for 30s
 #endif
 #define VOICE_WINDOW_MS    7000UL   // Aura → Spray window
 #define FB_POLL_MS         3000UL
@@ -152,10 +161,11 @@ int       fb_head            = 0;
 int       fb_count           = 0;
 
 // ── ML inference state ────────────────────────────────────────────────────────
-static bool wasShower    = false;
-static int  showerConsec = 0;
-static int  mlSampleCnt  = 0;
-static int  iaqPoorCount = 0;
+static bool          wasShower       = false;
+static int           showerConsec    = 0;
+static int           mlSampleCnt     = 0;
+static int           iaqPoorCount    = 0;
+static unsigned long lastInflectionMs = 0;  // when last VOC inflection was detected
 
 // ════════════════════════════════════════════════════════════
 //  ESP-SR
@@ -175,7 +185,12 @@ FirebaseData   fbCmd;
 FirebaseAuth   fbAuth;
 FirebaseConfig fbConfig;
 bool           firebaseReady = false;
-static unsigned long lastFbPollMs = 0;
+static unsigned long lastFbPollMs      = 0;
+static unsigned long lastSensorPushMs  = 0;
+static unsigned long lastSettingsPollMs = 0;
+#define SENSOR_PUSH_MS   5000UL
+#define SETTINGS_POLL_MS 10000UL
+static bool autoSprayEnabled = true;
 
 // ── Forward declarations ──────────────────────────────────────
 void connectWiFi();
@@ -186,6 +201,8 @@ bool initESPSR();
 bool initBME680();
 void srProcessingTask(void *pvParam);
 void pushSprayEvent(const char *trigger, unsigned long durationMs);
+void pushSensorData(float gas_ohm, float temp_c, float hum);
+void pollFirebaseSettings();
 
 void enterMode(SysMode m);
 void updateMode();
@@ -257,7 +274,8 @@ void loop() {
   }
 
   if (bmeReady) bsec2.run();  // P2 + P3/P4 via bsecCallback
-  pollFirebaseCommands();  // App
+  pollFirebaseCommands();   // App commands
+  pollFirebaseSettings();   // App settings (autoSpray toggle, duration)
 
   if (firebaseReady) Firebase.ready();
 
@@ -302,7 +320,16 @@ void enterSprayState(SprayState s) {
   sprayStateMs = millis();
   switch (s) {
     case SPRAY_IDLE:     Serial.println("SPRAY:idle");     break;
-    case SPRAY_SPRAYING: Serial.println("SPRAY:spraying"); break;
+    case SPRAY_SPRAYING: {
+      const char *reason = "unknown";
+      if      (strcmp(activeTrigger, "voice")         == 0) reason = "Voice command (Aura->Spray)";
+      else if (strcmp(activeTrigger, "app")            == 0) reason = "App command";
+      else if (strcmp(activeTrigger, "iaq_poor")       == 0) reason = "Poor air quality (IAQ ML model)";
+      else if (strcmp(activeTrigger, "p3_shower_end")  == 0) reason = "Shower detected (CNN model)";
+      else if (strcmp(activeTrigger, "p3_inflection")  == 0) reason = "VOC inflection + PIR";
+      Serial.printf("SPRAY:spraying  reason=%s\n", reason);
+      break;
+    }
     case SPRAY_COOLDOWN: Serial.println("SPRAY:cooldown"); break;
   }
 }
@@ -417,13 +444,15 @@ void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bs
     }
   }
 
-  // ── Decimate: push to ring buffer every 3 callbacks (~9 s) ────
-  if (++bsecCallCnt % 3 != 0 || gas_ohm <= 0.0f) return;
+  // ── Decimate: push every BSEC_DECIMATE callbacks ────────────
+  if (++bsecCallCnt % BSEC_DECIMATE != 0 || gas_ohm <= 0.0f) return;
+  Serial.printf("[BME] gas=%.0f t=%.1f h=%.1f cnt=%d\n", gas_ohm, temp_c, hum, fb_count);
   fb_push(gas_ohm, temp_c, hum);
+  pushSensorData(gas_ohm, temp_c, hum);
 
   // ── IAQ: MLP classifier (any mode; wakes system; queues during cooldown) ──
   // Replaces raw gas_ohm threshold — model uses gas_norm + humidity + temp features.
-  if (fb_count >= 60) {
+  if (fb_count >= IAQ_MIN_COUNT) {
     float feat[10]; computeIAQFeatures(feat);
     int cls = predictIAQ(feat);  // 0=Good, 1=Moderate, 2=Poor
     Serial.printf("[IAQ] cls=%d gn=%.3f hum=%.1f gas=%.0f\n",
@@ -431,11 +460,13 @@ void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bs
     if (cls == 2) {
       if (++iaqPoorCount >= IAQ_POOR_COUNT) {
         iaqPoorCount = 0;
-        if (sprayState == SPRAY_COOLDOWN) {
-          p2Pending = true;
-        } else if (sprayState == SPRAY_IDLE) {
-          if (sysMode == MODE_SLEEP) { enterMode(MODE_AWAKE); lastPirHighMs = millis(); }
-          startSpray("iaq_poor", false);
+        if (autoSprayEnabled) {
+          if (sprayState == SPRAY_COOLDOWN) {
+            p2Pending = true;
+          } else if (sprayState == SPRAY_IDLE) {
+            if (sysMode == MODE_SLEEP) { enterMode(MODE_AWAKE); lastPirHighMs = millis(); }
+            startSpray("iaq_poor", false);
+          }
         }
       }
     } else {
@@ -444,24 +475,33 @@ void onBsecData(const bme68xData data, const bsecOutputs outputs, const Bsec2 bs
   }
 
   // ── P3: VOC inflection + PIR (AWAKE + IDLE only) ────────────────
-  if (sysMode == MODE_AWAKE && sprayState == SPRAY_IDLE && fb_count >= 4) {
-    float g0 = fb_get_gas_norm(0), g1 = fb_get_gas_norm(1);
-    float g2 = fb_get_gas_norm(2), g3 = fb_get_gas_norm(3);
-    bool wasDeclining = (g2 < g3) && (g1 < g2);
+  if (fb_count >= 3) {
+    float g0 = fb_get_gas_norm(0), g1 = fb_get_gas_norm(1), g2 = fb_get_gas_norm(2);
+    bool wasDeclining = (g1 < g2);
     bool nowRising    = (g0 > g1);
-    bool pirRecent    = (millis() - lastPirHighMs < P3_PIR_WINDOW_MS);
-    if (wasDeclining && nowRising && pirRecent)
+    if (wasDeclining && nowRising) {
+      lastInflectionMs = millis();
+      Serial.printf("[P3] VOC inflection latched  gn=%.3f→%.3f→%.3f\n", g2, g1, g0);
+    }
+
+    bool inflectionRecent = (lastInflectionMs > 0 &&
+                             millis() - lastInflectionMs < P3_INFLECT_WINDOW_MS);
+    bool pirRecent        = (millis() - lastPirHighMs   < P3_PIR_WINDOW_MS);
+    if (autoSprayEnabled && sysMode == MODE_AWAKE && sprayState == SPRAY_IDLE &&
+        inflectionRecent && pirRecent) {
+      lastInflectionMs = 0;
       startSpray("p3_inflection", false);
+    }
   }
 
   // ── P3: Shower CNN (any mode; triggers on shower-end transition) ─
-  if (fb_count >= 30 && (++mlSampleCnt % 5 == 0)) {
+  if (fb_count >= CNN_MIN_COUNT && (++mlSampleCnt % 5 == 0)) {
     static float win[30][6]; computeShowerWindow(win);
     float prob = predictShower(win);
     bool isShower = (prob >= CNN_THRESHOLD);
     Serial.printf("[CNN] shower_prob=%.2f\n", prob);
-    if (wasShower && !isShower && showerConsec >= SHOWER_CONSEC_MIN)
-      startSpray("p3_shower_end", false);
+    if (autoSprayEnabled && wasShower && !isShower && showerConsec >= SHOWER_CONSEC_MIN)
+      startSpray("p3_shower_end", true);
     showerConsec = isShower ? showerConsec + 1 : 0;
     wasShower    = isShower;
   }
@@ -476,19 +516,24 @@ void pollFirebaseCommands() {
   if (millis() - lastFbPollMs < FB_POLL_MS) return;
   lastFbPollMs = millis();
 
-  if (!Firebase.RTDB.getString(&fbCmd, "/commands/action")) return;
-  String action = fbCmd.stringData();
-  if (action.length() == 0) return;
+  // App writes a JSON object: {action, source, sprayDurationS, requestedAt}
+  if (!Firebase.RTDB.getJSON(&fbCmd, "/commands/action")) return;
 
-  // Clear immediately to prevent re-processing
-  Firebase.RTDB.setString(&fbCmd, "/commands/action", "");
+  FirebaseJson     *json = fbCmd.to<FirebaseJson *>();
+  FirebaseJsonData  actionData;
+  json->get(actionData, "action");
+  if (!actionData.success) return;
+  String action = actionData.to<String>();
+
+  // Acknowledge by deleting the node → app sees snap.val() === null
+  Firebase.RTDB.deleteNode(&fbdo, "/commands/action");
+
+  Serial.printf("[App] command: %s\n", action.c_str());
 
   if (action == "spray") {
-    // App Spray: any mode incl. SLEEP; bypass CD; wakes system
     startSpray("app", true);
     if (sysMode == MODE_SLEEP) { enterMode(MODE_AWAKE); lastPirHighMs = millis(); }
   } else if (action == "stop") {
-    // App Stop: works in any mode
     if (sprayState == SPRAY_SPRAYING) stopSpray();
   }
 }
@@ -499,15 +544,26 @@ void pollFirebaseCommands() {
 // ════════════════════════════════════════════════════════════
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  unsigned long t = millis();
-  while (WiFi.status() != WL_CONNECTED) {
-    if (millis() - t > WIFI_TIMEOUT_MS) return;
-    delay(500);
+  for (int attempt = 1; attempt <= 3; attempt++) {
+    Serial.printf("WiFi: connecting to \"%s\" (attempt %d/3)...\n", WIFI_SSID, attempt);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    unsigned long t = millis();
+    while (WiFi.status() != WL_CONNECTED) {
+      if (millis() - t > WIFI_TIMEOUT_MS) break;
+      delay(500);
+      Serial.print(".");
+    }
+    Serial.println();
+    if (WiFi.status() == WL_CONNECTED) {
+      WiFi.setSleep(WIFI_PS_MIN_MODEM);
+      Serial.printf("WiFi: OK  IP=%s\n", WiFi.localIP().toString().c_str());
+      return;
+    }
+    Serial.printf("WiFi: attempt %d failed (status=%d)\n", attempt, WiFi.status());
+    WiFi.disconnect(true);
+    delay(1000);
   }
-  // Modem sleep: WiFi radio sleeps between beacon intervals (~100ms DTIM)
-  // Saves ~100mA average while idle; wakes automatically for TX/RX
-  WiFi.setSleep(WIFI_PS_MAX_MODEM);
+  Serial.println("WiFi: FAILED after 3 attempts");
 }
 
 void syncNTP() {
@@ -546,6 +602,39 @@ void pushSprayEvent(const char *trigger, unsigned long durationMs) {
 
   if (!Firebase.RTDB.pushJSON(&fbdo, "/spray_events", &json)) {
     Serial.printf("ERROR:firebase:%s\n", fbdo.errorReason().c_str());
+  }
+}
+
+void pushSensorData(float gas_ohm, float temp_c, float hum) {
+  if (!firebaseReady || !Firebase.ready()) return;
+  if (millis() - lastSensorPushMs < SENSOR_PUSH_MS) return;
+  lastSensorPushMs = millis();
+
+  const char *ctx = "idle";
+  if      (sprayState == SPRAY_SPRAYING)  ctx = "spraying";
+  else if (sprayState == SPRAY_COOLDOWN)  ctx = "cooldown";
+  else if (sysMode    == MODE_AWAKE)      ctx = "awake";
+
+  FirebaseJson json;
+  json.set("gas_ohm",      gas_ohm);
+  json.set("temp_c",       temp_c);
+  json.set("humidity_pct", hum);
+  json.set("context",      ctx);
+  json.set("updatedAt",    (double)((unsigned long long)time(nullptr) * 1000ULL));
+
+  Firebase.RTDB.setJSON(&fbdo, "/sensors/latest", &json);
+}
+
+void pollFirebaseSettings() {
+  if (!firebaseReady) return;
+  if (millis() - lastSettingsPollMs < SETTINGS_POLL_MS) return;
+  lastSettingsPollMs = millis();
+
+  if (Firebase.RTDB.getBool(&fbCmd, "/settings/autoSprayEnabled")) {
+    bool prev = autoSprayEnabled;
+    autoSprayEnabled = fbCmd.boolData();
+    if (autoSprayEnabled != prev)
+      Serial.printf("[Settings] autoSpray=%s\n", autoSprayEnabled ? "ON" : "OFF");
   }
 }
 

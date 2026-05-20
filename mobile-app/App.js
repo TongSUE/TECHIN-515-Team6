@@ -75,12 +75,14 @@ const CTX = {
 
 // ── Trigger metadata ──────────────────────────────────────────────────────────
 const TRIGGER = {
-  pir:           { label: 'Motion',  icon: '🚶', color: ACCENT.blue   },
-  voice:         { label: 'Voice',   icon: '🎙️', color: ACCENT.purple },
-  app:           { label: 'App',     icon: '📱', color: ACCENT.green  },
-  voc:           { label: 'VOC',     icon: '💨', color: ACCENT.orange },
-  p2_voc:        { label: 'VOC',     icon: '💨', color: ACCENT.orange },
-  p3_inflection: { label: 'PIR+VOC', icon: '🌿', color: ACCENT.teal  },
+  pir:           { label: 'Motion',    icon: '🚶', color: ACCENT.blue   },
+  voice:         { label: 'Voice',     icon: '🎙️', color: ACCENT.purple },
+  app:           { label: 'App',       icon: '📱', color: ACCENT.green  },
+  voc:           { label: 'VOC',       icon: '💨', color: ACCENT.orange },
+  p2_voc:        { label: 'VOC',       icon: '💨', color: ACCENT.orange },
+  iaq_poor:      { label: 'Poor Air',  icon: '🌫️', color: ACCENT.red    },
+  p3_inflection: { label: 'PIR+VOC',  icon: '🌿', color: ACCENT.teal   },
+  p3_shower_end: { label: 'Shower',   icon: '🚿', color: ACCENT.teal   },
 };
 
 // ── Reservoir config ──────────────────────────────────────────────────────────

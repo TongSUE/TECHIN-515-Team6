@@ -37,22 +37,23 @@ static inline float fb_get_hum(int ago)      { return fb_at(ago)->humidity; }
 static inline float fb_get_temp(int ago)     { return fb_at(ago)->temp_c; }
 
 // ── fb_push: add one sample, compute gas_norm against rolling max ────────────
-// gas_ohm is capped at 100 kΩ so BSEC2 heater-warmup spikes don't inflate
-// the rolling baseline (warmup can reach several hundred kΩ; real bathroom
-// readings are typically 20–80 kΩ).
-#define GAS_OHM_CAP 100000.0f
+// Readings above 100 kΩ are SKIPPED (not capped) — capping would store an
+// artificial 100k entry that becomes the rolling max and makes every subsequent
+// gas_norm look extremely negative.  Real bathroom readings: 20–80 kΩ.
+#define GAS_OHM_MAX 60000.0f
 
 static inline void fb_push(float gas_ohm_raw, float temp_c, float hum) {
-    float gas_ohm = (gas_ohm_raw > GAS_OHM_CAP) ? GAS_OHM_CAP : gas_ohm_raw;
+    if (gas_ohm_raw > GAS_OHM_MAX) return;   // skip warmup spikes entirely
+    float gas_ohm = gas_ohm_raw;
 
-    // 1. Find rolling max of capped gas_ohm over current valid entries + new reading
+    // 1. Find rolling max over current valid entries + new reading
     float rmax = gas_ohm;
     for (int i = 0; i < fb_count; i++) {
         float g = fb_ring[((fb_head - i) % BUF_SIZE + BUF_SIZE) % BUF_SIZE].gas_ohm;
         if (g > rmax) rmax = g;
     }
 
-    // 2. Write new reading (store capped value so rmax stays consistent)
+    // 2. Write new reading
     float gn = (rmax > 0.0f) ? (gas_ohm - rmax) / rmax : 0.0f;
     fb_ring[fb_head] = {gas_ohm, temp_c, hum, gn};
     fb_head = (fb_head + 1) % BUF_SIZE;
