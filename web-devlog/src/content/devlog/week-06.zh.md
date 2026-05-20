@@ -2,8 +2,8 @@
 week: 6
 date: "2026年5月5日 - 5月11日"
 title: "ML 端侧推理、外壳 v2、PCB v1 与 Firebase 验证"
-status: "In Progress"
-show_next_steps: false
+status: "Completed"
+show_next_steps: true
 summary: >
   本周四条并行主线同步推进。Lucia 将训练好的 IAQ MLP 和淋浴 CNN 权重导出为
   C 浮点数组并集成进 AuraSync 固件——设备现可完全在芯片上完成空气质量分类
@@ -30,18 +30,18 @@ prior_week_progress:
   enclosure: true
   pcb: true
 planned_next:
-  - id: pcb-bring-up
-    label: PCB v1 通电测试
-    description: "完成 PCB v1 焊接，用 LiPo + MT3608 供电，逐一验证 GPIO 接线是否与引脚分配一致，确认无短路后规划第二版修订。"
-  - id: enclosure-hifi
-    label: 高保真外壳
-    description: "上壳改用透明树脂翻模；PCB 最终尺寸确认后验证装配间隙；扩大麦克风开孔；选配尺寸合适的香氛瓶放入内筒。"
-  - id: firmware-integration-test
-    label: 端侧 ML 集成测试
-    description: "用真实 BSEC2 传感器数据运行完整 AuraSync 状态机，验证 IAQ 分类和淋浴检测在真实浴室条件下能正确触发。"
-  - id: final-system-test
-    label: 端到端系统测试与演示准备
-    description: "完整场景：PIR 唤醒设备 → ML 检测事件 → 喷雾执行 → 冷却生效 → Firebase 状态实时反映在应用中。准备最终演示。"
+  - id: pcb-finalize
+    label: PCB 最终焊接与测试
+    description: "完成 PCB v1 通电测试——LiPo + MT3608 供电，验证所有 GPIO 接线，确认无短路。根据发现的布线或间距问题打样并焊接 PCB v2。"
+  - id: enclosure-lid
+    label: 外壳上盖
+    description: "以硅胶模具翻模透明树脂上盖（A+B 双组分）。3D 打印母模的层纹肌理天然形成磨砂质感，无需后处理。"
+  - id: enclosure-base
+    label: 外壳下底座
+    description: "完成下底座建模并切片，使用 SLA 树脂打印机打印。底座需容纳 PCB、电池、传感器和雾化片，并与上盖的卡扣接口精确对齐。"
+  - id: system-integration
+    label: 整机系统集成测试
+    description: "所有传感器 + ML 触发器 + Firebase + 应用同时运行，在真实条件下验证完整流程：PIR 唤醒 → ML 事件检测 → 喷雾执行 → 冷却生效 → 应用状态实时同步。"
 ---
 
 ## 执行摘要
@@ -189,7 +189,7 @@ PCB 在 **GIX 使用 LPKF PCB 铣床**完成打样。铣切结果确认圆形板
 
 | 完成 | 任务 | 说明 |
 |:-:|---|---|
-| <input type="checkbox" /> | **PCB v1 通电测试** | 完成焊接，LiPo + MT3608 供电，验证 GPIO 接线，确认无短路，规划第二版修订。 |
-| <input type="checkbox" /> | **高保真外壳** | 上壳改用透明树脂翻模；PCB 尺寸确认后验证装配间隙；扩大麦克风开孔；选配香氛瓶。 |
-| <input type="checkbox" /> | **端侧 ML 集成测试** | 用真实 BSEC2 传感器数据运行完整 AuraSync 固件，验证 IAQ 分类和淋浴检测在真实浴室条件下正确触发。 |
-| <input type="checkbox" /> | **端到端系统测试与演示准备** | 完整场景：PIR 唤醒 → ML 检测事件 → 喷雾执行 → 冷却生效 → Firebase 状态在应用中实时反映。准备现场演示。 |
+| <input type="checkbox" /> | **PCB 最终焊接与测试** | 完成 PCB v1 通电测试，LiPo + MT3608 供电，验证 GPIO 接线，确认无短路。根据问题打样并焊接 PCB v2。 |
+| <input type="checkbox" /> | **外壳上盖** | 以硅胶模具翻模透明树脂上盖。PLA 母模的层纹天然形成磨砂质感。 |
+| <input type="checkbox" /> | **外壳下底座** | 完成建模与切片，SLA 打印；需与上盖卡扣精确对齐。 |
+| <input type="checkbox" /> | **整机系统集成测试** | 所有传感器 + ML + Firebase + 应用同时运行，在真实条件下验证完整流程。 |

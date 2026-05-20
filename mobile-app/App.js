@@ -5,7 +5,7 @@ import {
 import {
   SafeAreaView, ScrollView, StyleSheet, Text, View,
   StatusBar, Pressable, Animated, useColorScheme, Switch,
-  Platform,
+  Platform, Alert,
 } from 'react-native';
 import { ref, onValue, set } from 'firebase/database';
 import { db } from './firebase';
@@ -80,9 +80,9 @@ const TRIGGER = {
   app:           { label: 'App',       icon: '📱', color: ACCENT.green  },
   voc:           { label: 'VOC',       icon: '💨', color: ACCENT.orange },
   p2_voc:        { label: 'VOC',       icon: '💨', color: ACCENT.orange },
-  iaq_poor:      { label: 'Poor Air',  icon: '🌫️', color: ACCENT.red    },
   p3_inflection: { label: 'PIR+VOC',  icon: '🌿', color: ACCENT.teal   },
-  p3_shower_end: { label: 'Shower',   icon: '🚿', color: ACCENT.teal   },
+  iaq_poor:      { label: 'IAQ Poor',  icon: '🌫️', color: ACCENT.red    },
+  p3_shower_end: { label: 'Shower',    icon: '🚿', color: ACCENT.blue   },
 };
 
 // ── Reservoir config ──────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ function makeStyles(C) {
     sensorVal:  { fontSize: 22, fontWeight: '700', color: C.text, letterSpacing: -0.5 },
     sensorUnit: { fontSize: 13, fontWeight: '500', color: C.textSoft },
     sensorLbl:  { fontSize: 11, color: C.textFaint, marginTop: 4, fontWeight: '600', letterSpacing: 0.3, textTransform: 'uppercase' },
-    iaqPill:    { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start', marginBottom: 4 },
+    iaqPill:    { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, alignSelf: 'flex-start', marginBottom: 4 },
     iaqPillTxt: { fontSize: 12, fontWeight: '700' },
 
     // Settings rows
@@ -362,13 +362,13 @@ function SensorCard({ sensor }) {
 
       <View style={s.sensorGrid}>
         <View style={s.sensorItem}>
-          <View style={[s.iaqPill, { backgroundColor: iaq.color + '28' }]}>
-            <Text style={[s.iaqPillTxt, { color: iaq.color }]}>{iaq.label}</Text>
-          </View>
-          <Text style={[s.sensorVal, { fontSize: 18, marginTop: 2 }]}>
+          <Text style={[s.sensorVal, { fontSize: 18 }]}>
             {sensor?.gas_ohm != null ? `${(sensor.gas_ohm / 1000).toFixed(1)}` : '—'}
             {sensor?.gas_ohm != null && <Text style={s.sensorUnit}> kΩ</Text>}
           </Text>
+          <View style={[s.iaqPill, { backgroundColor: iaq.color + '28', marginTop: 4 }]}>
+            <Text style={[s.iaqPillTxt, { color: iaq.color }]} numberOfLines={1}>{iaq.label}</Text>
+          </View>
           <Text style={s.sensorLbl}>Gas</Text>
         </View>
 
@@ -452,7 +452,7 @@ function SettingsCard({ autoSpray, duration, onAutoSprayChange, onDurationChange
 }
 
 // ── UsageCard ─────────────────────────────────────────────────────────────────
-function UsageCard({ events }) {
+function UsageCard({ events, reservoirResetAt, reservoirStartMl, onReservoirReset }) {
   const { C, s } = useTheme();
 
   const todayEvents = useMemo(() => events.filter(e => isToday(e.unixMs)), [events]);
@@ -460,9 +460,19 @@ function UsageCard({ events }) {
     () => events.reduce((acc, e) => acc + (e.duration_ms ?? 5000) / 1000, 0),
     [events]
   );
-  const consumed  = totalSecs * RATE_ML_PER_S;
-  const remaining = Math.max(0, RESERVOIR_ML - consumed);
-  const resPct    = remaining / RESERVOIR_ML;
+
+  const eventsForReservoir = useMemo(
+    () => events.filter(e => e.unixMs >= reservoirResetAt),
+    [events, reservoirResetAt]
+  );
+  const reservoirSecs = useMemo(
+    () => eventsForReservoir.reduce((acc, e) => acc + (e.duration_ms ?? 5000) / 1000, 0),
+    [eventsForReservoir]
+  );
+
+  const consumed  = reservoirSecs * RATE_ML_PER_S;
+  const remaining = Math.max(0, reservoirStartMl - consumed);
+  const resPct    = remaining / reservoirStartMl;
   const resColor  = resPct > 0.5 ? C.green : resPct > 0.2 ? C.orange : C.red;
 
   const byTrigger = useMemo(() => {
@@ -477,6 +487,39 @@ function UsageCard({ events }) {
   const runtimeLabel = totalSecs < 60
     ? `${Math.round(totalSecs)}s`
     : `${Math.round(totalSecs / 60)}m`;
+
+  const handleReset = useCallback(() => {
+    Alert.alert(
+      'Reservoir',
+      `Estimated remaining: ${remaining.toFixed(1)} ml`,
+      [
+        {
+          text: 'Fill to Full',
+          onPress: () => onReservoirReset(RESERVOIR_ML),
+        },
+        {
+          text: 'Set Amount…',
+          onPress: () => {
+            if (Platform.OS === 'ios') {
+              Alert.prompt(
+                'Set Remaining',
+                'Enter current amount in ml (0–30):',
+                (input) => {
+                  const ml = parseFloat(input);
+                  if (!isNaN(ml)) onReservoirReset(Math.min(RESERVOIR_ML, Math.max(0, ml)));
+                },
+                'plain-text',
+                remaining.toFixed(1),
+              );
+            } else {
+              onReservoirReset(RESERVOIR_ML);
+            }
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  }, [remaining, onReservoirReset]);
 
   return (
     <View style={s.card}>
@@ -514,9 +557,14 @@ function UsageCard({ events }) {
       <View style={s.resWrap}>
         <View style={s.resLabelRow}>
           <Text style={s.resLabelTxt}>Reservoir estimate</Text>
-          <Text style={[s.resLabelTxt, { color: resColor }]}>
-            {remaining.toFixed(1)} / {RESERVOIR_ML} ml
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[s.resLabelTxt, { color: resColor }]}>
+              {remaining.toFixed(1)} / {reservoirStartMl} ml
+            </Text>
+            <Pressable onPress={handleReset} hitSlop={8}>
+              <Text style={{ fontSize: 14, color: C.textSoft }}>⟳</Text>
+            </Pressable>
+          </View>
         </View>
         <View style={s.resTrack}>
           <View style={[s.resFill, { width: `${Math.round(resPct * 100)}%`, backgroundColor: resColor }]} />
@@ -563,8 +611,17 @@ export default function App() {
   const [cooldownEndsAt, setCooldownEndsAt] = useState(null);
 
   // Settings
-  const [autoSpray, setAutoSpray] = useState(true);
-  const [duration,  setDuration]  = useState(5);
+  const [autoSpray,          setAutoSpray]          = useState(true);
+  const [duration,           setDuration]           = useState(5);
+  const [reservoirResetAt,   setReservoirResetAt]   = useState(0);
+  const [reservoirStartMl,   setReservoirStartMl]   = useState(RESERVOIR_ML);
+
+  // 30-second tick to keep deviceOnline fresh when sensor stops updating
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   // Spray state machine
   const [sprayState, setSprayState] = useState('idle');
@@ -652,8 +709,10 @@ export default function App() {
   useEffect(() => {
     const unsub = onValue(ref(db, 'settings'), (snap) => {
       const d = snap.val() ?? {};
-      if (d.autoSprayEnabled != null) setAutoSpray(Boolean(d.autoSprayEnabled));
-      if (d.sprayDurationS   != null) setDuration(Number(d.sprayDurationS));
+      if (d.autoSprayEnabled  != null) setAutoSpray(Boolean(d.autoSprayEnabled));
+      if (d.sprayDurationS    != null) setDuration(Number(d.sprayDurationS));
+      if (d.reservoirResetAt  != null) setReservoirResetAt(Number(d.reservoirResetAt));
+      if (d.reservoirStartMl  != null) setReservoirStartMl(Number(d.reservoirStartMl));
     });
     return () => unsub();
   }, []);
@@ -699,6 +758,16 @@ export default function App() {
     }
   }, [duration]);
 
+  // ── Reservoir reset handler ────────────────────────────────────────────────
+  const handleReservoirReset = useCallback((ml) => {
+    const now = Date.now();
+    setReservoirResetAt(now);
+    setReservoirStartMl(ml);
+    set(ref(db, 'settings/reservoirResetAt'), now);
+    set(ref(db, 'settings/reservoirStartMl'), ml);
+  }, []);
+
+  const deviceOnline = !!(sensor && (Date.now() - sensor.updatedAt) < 120000);
   const inCooldown = !!(cooldownEndsAt && cooldownEndsAt > Date.now());
   const last       = events[0];
   const visible    = events.slice(0, 20);
@@ -714,9 +783,15 @@ export default function App() {
             <Text style={s.eyebrow}>SMART HOME</Text>
             <Text style={s.title}>AuraSync</Text>
           </View>
-          <View style={s.headerRight}>
-            <StatusDot connected={connected} />
-            <Text style={s.headerStatus}>{connected ? 'Connected' : 'Connecting…'}</Text>
+          <View style={{ alignItems: 'flex-end', gap: 5 }}>
+            <View style={s.headerRight}>
+              <StatusDot connected={connected} />
+              <Text style={s.headerStatus}>{connected ? 'App' : 'Offline'}</Text>
+            </View>
+            <View style={s.headerRight}>
+              <StatusDot connected={deviceOnline} />
+              <Text style={s.headerStatus}>{deviceOnline ? 'Device' : 'No Device'}</Text>
+            </View>
           </View>
         </View>
 
@@ -758,7 +833,12 @@ export default function App() {
           />
 
           {/* Usage card */}
-          <UsageCard events={events} />
+          <UsageCard
+            events={events}
+            reservoirResetAt={reservoirResetAt}
+            reservoirStartMl={reservoirStartMl}
+            onReservoirReset={handleReservoirReset}
+          />
 
           {/* Activity section */}
           <View style={s.sectionHead}>

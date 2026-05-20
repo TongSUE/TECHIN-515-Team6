@@ -126,6 +126,16 @@ export const strings = {
                 'Devlog write-up',
               ],
             },
+            {
+              label: 'Week 7',
+              items: [
+                'App UI polish — trigger icons (iaq_poor 🌫️, p3_shower_end 🚿), IAQ pill reposition, reservoir reset flow',
+                'Device online status indicator (dual-row header: Firebase + ESP32)',
+                'Transparent lid casting (with Lucia)',
+                'Open House demo',
+                'Devlog write-up',
+              ],
+            },
           ],
         },
         {
@@ -178,6 +188,15 @@ export const strings = {
                 'ML firmware integration — IAQ MLP + Shower CNN exported as C weight arrays, on-device inference (Round 2: Val F1 0.902)',
                 'Enclosure v2 redesign — cylindrical two-part snap-fit, PLA printed',
                 'Milestone 2 presentation slides',
+              ],
+            },
+            {
+              label: 'Week 7',
+              items: [
+                'AuraSync v4 firmware — unified WiFi, IAQ MLP replacing raw gas threshold, restored VOC+PIR trigger, DEMO_MODE flag; all 5 trigger paths verified',
+                'Enclosure v3 CAD — raised upper shell, USB-C cutout, revised PCB mount and mic placement',
+                'Transparent lid casting — silicone mold + clear resin; frosted-glass finish from PLA layer texture',
+                'Open House demo',
               ],
             },
           ],
@@ -332,6 +351,16 @@ export const strings = {
                 '开发日志撰写',
               ],
             },
+            {
+              label: '第 7 周',
+              items: [
+                'App UI 优化——触发图标补全（iaq_poor 🌫️、p3_shower_end 🚿）、IAQ 气泡位置修复、储液槽重置功能',
+                '设备在线状态指示（顶栏双行：Firebase + ESP32）',
+                '透明上盖翻模（与 Lucia 合作）',
+                'Open House 展示',
+                '开发日志撰写',
+              ],
+            },
           ],
         },
         {
@@ -376,6 +405,15 @@ export const strings = {
                 'ML 固件集成——IAQ MLP + 淋浴 CNN 导出为 C 权重数组，端侧推理（第二轮 Val F1 0.902）',
                 '外壳 v2 重设计——圆柱形两段卡扣结构，PLA 打印',
                 'Milestone 2 幻灯片',
+              ],
+            },
+            {
+              label: '第 7 周',
+              items: [
+                'AuraSync v4 固件——统一 WiFi 处理、IAQ MLP 替换原始气体阈值、恢复 VOC+PIR 触发、DEMO_MODE 标志；全部 5 条触发路径硬件验证完成',
+                '外壳 v3 CAD——上壳加高、USB-C 开口、修订 PCB 固定与麦克风位置',
+                '透明上盖翻模——硅胶模具 + 透明树脂；PLA 层纹赋予磨砂玻璃质感',
+                'Open House 展示',
               ],
             },
           ],

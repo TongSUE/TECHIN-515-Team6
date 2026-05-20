@@ -2,8 +2,8 @@
 week: 6
 date: "May 5 - May 11, 2026"
 title: "ML On-Device Inference, Enclosure v2, PCB v1 & Firebase Validation"
-status: "In Progress"
-show_next_steps: false
+status: "Completed"
+show_next_steps: true
 summary: >
   Four tracks converged this week. Lucia exported the trained IAQ MLP and
   Shower CNN weights as C float arrays and wired them into the AuraSync
@@ -33,18 +33,18 @@ prior_week_progress:
   enclosure: true
   pcb: true
 planned_next:
-  - id: pcb-bring-up
-    label: PCB v1 Bring-up & Test
-    description: "Complete PCB v1 soldering, power it from the LiPo + MT3608, verify all GPIO connections match the pinout, and confirm no short circuits before a second revision."
-  - id: enclosure-hifi
-    label: High-Fidelity Enclosure
-    description: "Print upper section in transparent resin; verify component fit once final PCB dimensions are confirmed; increase microphone perforations; source fragrance bottle sized to fit inner cylinder."
-  - id: firmware-integration-test
-    label: On-Device ML Integration Test
-    description: "Run the full AuraSync state machine with live BSEC2 sensor data — validate that IAQ classification and shower detection trigger correctly under real bathroom conditions."
-  - id: final-system-test
-    label: End-to-End System Test & Demo Prep
-    description: "Full scenario: PIR wakes device → ML detects shower or odour → spray actuates → cooldown enforced → Firebase status in app. Prepare live demo for final presentation."
+  - id: pcb-finalize
+    label: Finalize PCB & Soldering
+    description: "Complete PCB v1 bring-up — power from LiPo + MT3608, verify all GPIO connections, confirm no shorts. Cut and solder PCB v2 to fix any routing or clearance issues found during testing."
+  - id: enclosure-lid
+    label: Enclosure Upper Lid
+    description: "Cast the upper lid using a silicone mold and clear resin (A+B). The 3D-printed master's layer texture provides a natural frosted finish without post-processing."
+  - id: enclosure-base
+    label: Enclosure Lower Base
+    description: "Model and slice the lower base for SLA resin printing. The base houses the PCB, battery, sensors, and atomizer, and must align with the snap-fit interface of the cast upper lid."
+  - id: system-integration
+    label: Full System Integration Test
+    description: "Run all sensors + ML triggers + Firebase + app together as a complete pipeline — validate PIR wake → ML event detection → spray actuation → cooldown → Firebase state reflected in app under real conditions."
 ---
 
 ## Executive Summary
@@ -192,7 +192,7 @@ The board was manufactured at **GIX using the LPKF PCB milling machine**. Millin
 
 | Done | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **PCB v1 Bring-up & Test** | Complete soldering, power from LiPo + MT3608, verify GPIO pinout, confirm no short circuits, then plan revision 2. |
-| <input type="checkbox" /> | **High-Fidelity Enclosure** | Reprint upper section in transparent resin; verify component fit against final PCB dimensions; increase microphone perforations; source fragrance bottle. |
-| <input type="checkbox" /> | **On-Device ML Integration Test** | Run full AuraSync firmware with live BSEC2 sensor data — validate IAQ classification and shower detection under real bathroom conditions. |
-| <input type="checkbox" /> | **End-to-End System Test & Demo Prep** | Full scenario: PIR wakes device → ML detects event → spray actuates → cooldown enforced → Firebase status in app. Prepare live demo. |
+| <input type="checkbox" /> | **Finalize PCB & Soldering** | Complete PCB v1 bring-up; power from LiPo + MT3608; verify GPIO pinout and confirm no shorts. Cut and solder PCB v2 to address any issues. |
+| <input type="checkbox" /> | **Enclosure Upper Lid** | Cast the upper lid using a silicone mold and clear resin (A+B). The PLA master's layer texture gives a natural frosted finish. |
+| <input type="checkbox" /> | **Enclosure Lower Base** | Model and slice the lower base for SLA resin printing; must align with the snap-fit interface of the cast lid. |
+| <input type="checkbox" /> | **Full System Integration Test** | Run all sensors + ML + Firebase + app together as one pipeline under real conditions. |

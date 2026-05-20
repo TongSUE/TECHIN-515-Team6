@@ -282,7 +282,7 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
       ) : imgEl
       if (title) {
         return (
-          <figure className="my-8">
+          <figure className="my-8 flex flex-col items-center">
             {clickable}
             <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
               {title}
@@ -290,7 +290,7 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
           </figure>
         )
       }
-      return <div className="my-8">{clickable}</div>
+      return <div className="my-8 flex justify-center">{clickable}</div>
     },
     code({ inline, className, children, ...props }) {
       const isFenced =
@@ -470,6 +470,62 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
               />
               <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
                 Usage · Reservoir estimate · Recent Activity
+              </figcaption>
+            </figure>
+          </div>
+        )
+      }
+      if (classes.includes('app-ui-update-embed')) {
+        return (
+          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
+            <figure className="w-full text-center sm:max-w-[260px]">
+              <img
+                src={resolveAssetUrl('images/devlog/device-status.jpg')}
+                alt="AuraSync app header showing two-row status indicator — App green dot and Device green dot separately"
+                loading="lazy"
+                className="w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Dual status: App (Firebase) and Device (ESP32) shown separately
+              </figcaption>
+            </figure>
+            <figure className="w-full text-center sm:max-w-[260px]">
+              <img
+                src={resolveAssetUrl('images/devlog/usage-reset.jpg')}
+                alt="AuraSync app reservoir section showing reset button and action sheet with Fill to Full and Set Amount options"
+                loading="lazy"
+                className="w-full rounded-xl border border-slate-200/90 bg-white object-contain shadow-sm dark:border-slate-600 dark:bg-slate-900"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Reservoir ⟳ reset — Fill to Full or enter a custom amount
+              </figcaption>
+            </figure>
+          </div>
+        )
+      }
+      if (classes.includes('silicone-making-embed')) {
+        return (
+          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
+            <figure className="w-full text-center sm:max-w-[280px]">
+              <img
+                src={resolveAssetUrl('images/devlog/degasing.png')}
+                alt="Silicone being degassed in a vacuum chamber — bubbles rising to the surface before the mold is poured"
+                loading="lazy"
+                className="w-full rounded-xl object-contain shadow-sm"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Degassing silicone — pulling trapped air out before pouring
+              </figcaption>
+            </figure>
+            <figure className="w-full text-center sm:max-w-[280px]">
+              <img
+                src={resolveAssetUrl('images/devlog/silicone-mold-with-glass.jpg')}
+                alt="Silicone mold being cast with a glass cup pressed into the center as an internal displacement structure"
+                loading="lazy"
+                className="w-full rounded-xl object-contain shadow-sm"
+              />
+              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
+                Glass cup as internal displacer — saved silicone, but proved very hard to demold
               </figcaption>
             </figure>
           </div>
