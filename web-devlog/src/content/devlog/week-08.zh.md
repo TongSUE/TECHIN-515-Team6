@@ -17,7 +17,7 @@ credits:
   - name: Lucia
     initials: L
     tags:
-      - WS2812B 灯带固件
+      - LED 灯带固件
       - 语音调优
       - 树脂上盖翻模（备用）
       - 整机组装
@@ -35,7 +35,7 @@ prior_week_progress:
   print-base: true
   full-assembly: true
   pcb-soldering: true
-  backup-video: false
+  backup-video: "partial"
 planned_next:
   - id: backup-video
     label: 录制备用演示视频

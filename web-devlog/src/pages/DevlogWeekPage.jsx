@@ -169,7 +169,7 @@ export default function DevlogWeekPage() {
           </div>
         ) : null}
         {entry.credits?.length ? (
-          <div className="mt-6 max-w-[52rem]">
+          <div className="mt-6 max-w-[68rem]">
             <DevlogCredits credits={entry.credits} />
           </div>
         ) : null}

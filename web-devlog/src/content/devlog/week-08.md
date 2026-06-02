@@ -19,7 +19,7 @@ credits:
   - name: Lucia
     initials: L
     tags:
-      - WS2812B LED Firmware
+      - LED Firmware
       - Voice Tuning
       - Resin Lid Re-mold (backup)
       - Full Assembly
@@ -37,7 +37,7 @@ prior_week_progress:
   print-base: true
   full-assembly: true
   pcb-soldering: true
-  backup-video: false
+  backup-video: "partial"
 planned_next:
   - id: backup-video
     label: Record Backup Demo Video
