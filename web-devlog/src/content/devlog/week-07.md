@@ -48,9 +48,12 @@ planned_next:
   - id: full-assembly
     label: Full Enclosure Assembly
     description: "Assemble upper lid + lower base with all components seated — PCB, LiPo, BME680, PIR, INMP441, atomizer. Run the full state machine to confirm nothing regressed post-assembly."
-  - id: pcb-video
-    label: PCB Soldering & Backup Demo Video
-    description: "Finalize soldering when the custom PCB arrives. Record a short run-through video as backup evidence in case the live demo has connectivity issues."
+  - id: pcb-soldering
+    label: PCB Final Soldering
+    description: "Complete final soldering when the custom PCB arrives — all breakout connectors, atomizer MOSFET, MT3608, and WS2812B ring leads."
+  - id: backup-video
+    label: Record Backup Demo Video
+    description: "Record a complete run-through of all five trigger paths as a fallback in case the live demo has connectivity or environmental issues."
 ---
 
 ## Executive Summary
@@ -226,4 +229,5 @@ The PLA print layer lines transferred through the silicone and into the resin su
 | <input type="checkbox" checked /> | **Sand & Finish Transparent Lid** | Sand cast resin lid to a uniform frosted finish; test fit onto lower base. |
 | <input type="checkbox" checked /> | **Print Enclosure Lower Shell** | SLA printer repaired — print lower base in resin; verify fit against lid and PCB. |
 | <input type="checkbox" checked /> | **Full Enclosure Assembly** | Seat PCB, LiPo, BME680, PIR, INMP441, and atomizer into lower base; close both halves; confirm full state machine runs post-assembly. |
-| <input type="checkbox" /> | **PCB Soldering & Backup Demo Video** | Finalize soldering when custom PCB arrives. Record a short run-through video as backup in case live demo has connectivity issues. |
+| <input type="checkbox" checked /> | **PCB Final Soldering** | Solder all components when custom PCB arrives — breakout connectors, atomizer MOSFET, MT3608, WS2812B ring leads. |
+| <input type="checkbox" /> | **Record Backup Demo Video** | Record a complete run-through of all five trigger paths as a fallback for the live demo. |

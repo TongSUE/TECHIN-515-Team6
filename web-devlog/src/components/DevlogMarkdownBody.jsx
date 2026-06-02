@@ -615,85 +615,29 @@ function createMarkdownComponents({ checklistStyle = false, onImageClick } = {})
           </div>
         )
       }
-      if (classes.includes('resin-repair-embed')) {
+      if (classes.includes('final-triggers-embed')) {
+        const p1 = resolveAssetUrl('images/devlog/final-poor-voc.jpg')
+        const p2 = resolveAssetUrl('images/devlog/final-voice-control-test.jpg')
         return (
           <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
             <figure className="w-full text-center sm:max-w-[280px]">
-              <img
-                src={resolveAssetUrl('images/devlog/resin-lid-cracked.jpg')}
-                alt="Clear resin upper lid with radial cracks from the drilled spray nozzle opening"
-                loading="lazy"
-                className="w-full rounded-xl object-contain shadow-sm"
-              />
+              {onImageClick ? (
+                <button type="button" onClick={() => onImageClick({ src: p1, alt: 'AuraSync IAQ Poor trigger test — orange LED ring, auto-spray fired', title: 'IAQ Poor trigger — orange ring; auto-spray fired' })} className="cursor-zoom-in focus:outline-none">
+                  <img src={p1} alt="IAQ Poor trigger test" loading="lazy" className="w-full rounded-xl object-contain shadow-sm" />
+                </button>
+              ) : <img src={p1} alt="IAQ Poor trigger test" loading="lazy" className="w-full rounded-xl object-contain shadow-sm" />}
               <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
-                Radial cracks from the drill — resin is brittle under a punch-through load
+                IAQ Poor — orange ring; auto-spray triggered
               </figcaption>
             </figure>
             <figure className="w-full text-center sm:max-w-[280px]">
-              <img
-                src={resolveAssetUrl('images/devlog/resin-lid-repaired.jpg')}
-                alt="Resin lid after same-resin crack repair and re-sanding — cracks nearly invisible, frosted finish restored"
-                loading="lazy"
-                className="w-full rounded-xl object-contain shadow-sm"
-              />
+              {onImageClick ? (
+                <button type="button" onClick={() => onImageClick({ src: p2, alt: 'Voice control test — "Release" keyword detected by MultiNet7, spray triggered', title: 'Voice trigger — "Release" detected; spray actuated' })} className="cursor-zoom-in focus:outline-none">
+                  <img src={p2} alt="Voice control test" loading="lazy" className="w-full rounded-xl object-contain shadow-sm" />
+                </button>
+              ) : <img src={p2} alt="Voice control test" loading="lazy" className="w-full rounded-xl object-contain shadow-sm" />}
               <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
-                After same-resin repair and re-sand — cracks nearly invisible
-              </figcaption>
-            </figure>
-          </div>
-        )
-      }
-      if (classes.includes('led-ring-embed')) {
-        return (
-          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
-            <figure className="w-full text-center sm:max-w-[280px]">
-              <img
-                src={resolveAssetUrl('images/devlog/led-ring-sleep.jpg')}
-                alt="AuraSync 24-LED WS2812B ring in slow blue breathing animation — sleep state"
-                loading="lazy"
-                className="w-full rounded-xl object-contain shadow-sm"
-              />
-              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
-                Sleep — slow blue breathing
-              </figcaption>
-            </figure>
-            <figure className="w-full text-center sm:max-w-[280px]">
-              <img
-                src={resolveAssetUrl('images/devlog/led-ring-spraying.jpg')}
-                alt="AuraSync 24-LED WS2812B ring showing white rotating chase animation — spraying state"
-                loading="lazy"
-                className="w-full rounded-xl object-contain shadow-sm"
-              />
-              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
-                Spraying — white rotating chase
-              </figcaption>
-            </figure>
-          </div>
-        )
-      }
-      if (classes.includes('assembly-embed')) {
-        return (
-          <div className="my-8 flex flex-col items-center justify-center gap-6 sm:flex-row sm:items-start">
-            <figure className="w-full text-center sm:max-w-[280px]">
-              <img
-                src={resolveAssetUrl('images/devlog/full-assembly-front.jpg')}
-                alt="AuraSync fully assembled — transparent upper lid with frosted finish over white lower base, LED ring visible through the enclosure wall"
-                loading="lazy"
-                className="w-full rounded-xl object-contain shadow-sm"
-              />
-              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
-                Final assembly — frosted upper lid over lower base
-              </figcaption>
-            </figure>
-            <figure className="w-full text-center sm:max-w-[280px]">
-              <img
-                src={resolveAssetUrl('images/devlog/full-assembly-lit.jpg')}
-                alt="AuraSync assembled with LED ring illuminated — showing state-reactive lighting visible through the enclosure"
-                loading="lazy"
-                className="w-full rounded-xl object-contain shadow-sm"
-              />
-              <figcaption className="mt-2 text-center text-sm text-ink-soft dark:text-slate-400">
-                LED ring lit — state-reactive lighting diffused through the resin
+                Voice — "Release" detected; spray actuated
               </figcaption>
             </figure>
           </div>

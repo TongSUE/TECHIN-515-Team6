@@ -2,7 +2,7 @@
 week: 7
 date: "2026年5月12日 - 5月18日"
 title: "AuraSync v4、Open House 展示、App UI 优化与外壳上盖翻模"
-status: "In Progress"
+status: "Completed"
 show_next_steps: true
 summary: >
   本周四条主线。Lucia 将固件升级至 AuraSync v4：新增 DEMO_MODE（3 秒采样、
@@ -45,9 +45,12 @@ planned_next:
   - id: full-assembly
     label: 整机组装
     description: "将上盖与下底座合拢，装入全部组件——PCB、LiPo、BME680、PIR、INMP441、雾化片。运行完整状态机确认组装后功能正常。"
-  - id: pcb-video
-    label: PCB 焊接与备用演示视频
-    description: "定制 PCB 到货后完成最终焊接。录制一段完整流程的备用演示视频，以防现场演示出现网络连接问题。"
+  - id: pcb-soldering
+    label: PCB 最终焊接
+    description: "定制 PCB 到货后完成全部焊接——接插件、雾化片 MOSFET、MT3608 及 WS2812B 灯带引线。"
+  - id: backup-video
+    label: 录制备用演示视频
+    description: "录制一段涵盖五条触发路径的完整演示视频，以备现场演示出现网络或环境问题时使用。"
 ---
 
 ## 执行摘要
@@ -218,7 +221,8 @@ PLA 打印层纹经由硅胶转印至树脂表面，形成预期的磨砂玻璃�
 
 | 完成 | 任务 | 说明 |
 |:-:|---|---|
-| <input type="checkbox" /> | **打磨并修整透明上盖** | 对树脂上盖表面进行打磨，获得均匀磨砂质感，随后与下底座进行配合测试。 |
-| <input type="checkbox" /> | **打印外壳下底座** | SLA 打印机已修复——打印下底座，验证与上盖及 PCB 的尺寸配合。 |
-| <input type="checkbox" /> | **整机组装** | 将上盖与下底座合拢，装入全部组件；运行完整状态机确认功能正常。 |
-| <input type="checkbox" /> | **PCB 焊接与备用演示视频** | 定制 PCB 到货后完成最终焊接；录制备用演示视频以防现场连接问题。 |
+| <input type="checkbox" checked /> | **打磨并修整透明上盖** | 对树脂上盖表面进行打磨，获得均匀磨砂质感，随后与下底座进行配合测试。 |
+| <input type="checkbox" checked /> | **打印外壳下底座** | SLA 打印机已修复——打印下底座，验证与上盖及 PCB 的尺寸配合。 |
+| <input type="checkbox" checked /> | **整机组装** | 将上盖与下底座合拢，装入全部组件；运行完整状态机确认功能正常。 |
+| <input type="checkbox" checked /> | **PCB 最终焊接** | 定制 PCB 到货后完成全部焊接——接插件、MOSFET、MT3608 及 WS2812B 灯带引线。 |
+| <input type="checkbox" /> | **录制备用演示视频** | 录制五条触发路径完整演示视频，以备现场连接问题时使用。 |
