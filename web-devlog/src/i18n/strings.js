@@ -136,6 +136,15 @@ export const strings = {
                 'Devlog write-up',
               ],
             },
+            {
+              label: 'Week 8',
+              items: [
+                'PCB bring-up — soldered all components, JST connectors, atomizer MOSFET, MT3608, and WS2812B ring leads',
+                'Enclosure lower base — SLA print (with Kevin), support removal, UV cure, wet sanding 60→1000 grit',
+                'Resin lid finishing — band saw trim, drill spray hole, resin crack repair with same-material fill, final re-sand',
+                'Devlog write-up',
+              ],
+            },
           ],
         },
         {
@@ -197,6 +206,15 @@ export const strings = {
                 'Enclosure v3 CAD — raised upper shell, USB-C cutout, revised PCB mount and mic placement',
                 'Transparent lid casting — silicone mold + clear resin; frosted-glass finish from PLA layer texture',
                 'Open House demo',
+              ],
+            },
+            {
+              label: 'Week 8',
+              items: [
+                'WS2812B 24-LED ring — five state-reactive animations (sleep, IAQ level, spray, cooldown, voice window) via FastLED',
+                'PlatformIO migration — ESP-IDF 5.x, pioarduino platform, pinned FastLED 3.9.0',
+                'Voice command tuning — added "Release" as second trigger word; threshold 0.45; all 5 trigger paths verified post-assembly',
+                'Resin lid re-mold backup — re-modelled silicone mold for recasting; ultimately not needed after repair succeeded',
               ],
             },
           ],

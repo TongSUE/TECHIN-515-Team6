@@ -2,7 +2,7 @@
 week: 7
 date: "May 12 - May 18, 2026"
 title: "AuraSync v4, Open House Demo, App UI Polish & Enclosure Casting"
-status: "In Progress"
+status: "Completed"
 show_next_steps: true
 summary: >
   Four tracks this week. Lucia upgraded the firmware to AuraSync v4: added
@@ -223,7 +223,7 @@ The PLA print layer lines transferred through the silicone and into the resin su
 
 | Done | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **Sand & Finish Transparent Lid** | Sand cast resin lid to a uniform frosted finish; test fit onto lower base. |
-| <input type="checkbox" /> | **Print Enclosure Lower Shell** | SLA printer repaired — print lower base in resin; verify fit against lid and PCB. |
-| <input type="checkbox" /> | **Full Enclosure Assembly** | Seat PCB, LiPo, BME680, PIR, INMP441, and atomizer into lower base; close both halves; confirm full state machine runs post-assembly. |
+| <input type="checkbox" checked /> | **Sand & Finish Transparent Lid** | Sand cast resin lid to a uniform frosted finish; test fit onto lower base. |
+| <input type="checkbox" checked /> | **Print Enclosure Lower Shell** | SLA printer repaired — print lower base in resin; verify fit against lid and PCB. |
+| <input type="checkbox" checked /> | **Full Enclosure Assembly** | Seat PCB, LiPo, BME680, PIR, INMP441, and atomizer into lower base; close both halves; confirm full state machine runs post-assembly. |
 | <input type="checkbox" /> | **PCB Soldering & Backup Demo Video** | Finalize soldering when custom PCB arrives. Record a short run-through video as backup in case live demo has connectivity issues. |
