@@ -68,7 +68,7 @@ With the SLA printer repaired, Yutong printed the lower base resin with Kevin's 
 2. UV post-cure (secondary hardening pass)
 3. Wet-sand: 60 → 120 → 240 → 400 → 600 → 1000 grit
 
-Wet-sanding keeps the sandpaper dipped in water throughout — this dissipates heat and prevents resin dust from clogging the abrasive or becoming airborne.
+> **Wet-sanding tip:** Keeping the sandpaper dipped in water throughout each grit stage dissipates heat — preventing the resin from micro-melting and clogging the abrasive — and eliminates resin dust becoming airborne. The water turns visibly cloudy as it lifts the material instead.
 
 ![Wet sanding the lower base — sandpaper dipped in water at each grit stage](images/devlog/sanding-paper.jpg "Wet sanding — water keeps the paper clear and prevents heat build-up")
 
@@ -90,13 +90,15 @@ Kevin was consulted. Three options were considered:
 | UV glue repair | Fast (minutes) | Different material; may leave a visible seam |
 | Same-resin repair | Material match; strong, near-invisible bond | 24 h cure; cosmetic result uncertain |
 
-The team chose **same-resin repair**: liquid resin was worked into the cracks and cured for 24 hours. In parallel, Lucia re-modelled the mold and prepared a fresh silicone mold for recasting — it turned out not to be needed.
+> **Why same-resin?** Using the identical material means the fill bonds chemically with the surrounding piece rather than just adhering to the surface — the seam becomes structurally continuous. After sanding, the colour, translucency, and surface texture match the original almost perfectly. In parallel, Lucia re-modelled and prepared a fresh silicone mold as a backup in case the repair failed — it turned out not to be needed.
 
 ![Resin upper lid with radial cracks from the drilled spray nozzle opening](images/devlog/drill-broken-lid.jpg "Drill-through crack — resin cracked radially from the nozzle hole")
 
 ![Same-resin repair — liquid resin worked into cracks before 24 h cure](images/devlog/repair-using-resin.jpg "Same-resin repair — liquid resin fills the cracks; 24 h cure")
 
-After curing, Lucia and Yutong re-sanded the lid together. The cracks are nearly invisible and the frosted finish is consistent across the whole surface.
+After curing, Lucia and Yutong re-sanded the lid together.
+
+> The repair was cleaner than the team expected — after re-sanding, the crack lines are nearly invisible and the frosted finish is consistent across the whole surface.
 
 ![Re-sanding the repaired lid — Lucia and Yutong finishing together](images/devlog/sanding-after-repair.jpg "Post-repair sanding — crack lines nearly invisible after re-sand")
 
@@ -119,7 +121,7 @@ Multiple debugging passes identified and cleared short circuits before the board
 
 ### WS2812B LED Ring
 
-Lucia integrated a 24-LED WS2812B ring (FastLED 3.9.0, GPIO3) with five state-reactive animations:
+Lucia integrated a 24-LED WS2812B ring (FastLED 3.9.0, GPIO3) with five state-reactive animations that give AuraSync a clear visual language for every state:
 
 | Device state | Animation |
 |---|---|
@@ -137,14 +139,14 @@ The build was migrated from Arduino IDE (ESP-IDF 4.x) to **PlatformIO** (pioardu
 
 ### Voice Command Tuning
 
-After full assembly, voice recognition was tested in real conditions:
+After full assembly, voice recognition was tested in real conditions. The results were mixed:
 
 - **"Aura"** (wake) and **"Stop"** (cancel) — reliable
-- **"Spray"** — consistently missed in ambient noise (hardware limitation: the acoustic cavity design attenuates certain phonemes)
+- **"Spray"** — consistently missed in ambient noise
 
-Fix: **"Release"** was added as a second trigger word. Both map to the same spray action. With MultiNet7 threshold at `0.45f`, "Release" is significantly more detectable than "Spray" in a noisy environment.
+> **Why "Spray" fails and "Release" works:** "Spray" opens with a sibilant /spr/ cluster — a high-frequency blend that the acoustic cavity significantly attenuates. "Release" has a liquid-consonant onset and an open vowel, making it far more robust in a noisy room. Both words now map to the same spray action; the system effectively gained a more reliable trigger word for free.
 
-Active voice commands: `aura` / `spray` / `fragrance` / `release` / `stop`
+Fix: **"Release"** was added as a second trigger word with the MultiNet7 threshold at `0.45f`. Active voice commands: `aura` / `spray` / `fragrance` / `release` / `stop`
 
 <a id="assembly" style="display:block;height:0;overflow:hidden;scroll-margin-top:7rem"></a>
 
@@ -164,9 +166,13 @@ All components were seated into the assembled enclosure. All five trigger paths 
 
 <div class="final-triggers-embed"></div>
 
+### Demo Footage
+
+Raw footage of all five trigger paths was captured during integration testing this week. The clips are not yet edited or polished enough for a formal submission — a proper re-record with clean takes and narration is planned for next week.
+
 ## Next Steps
 
 | Done | Task | Description |
 |:-:|---|---|
-| <input type="checkbox" /> | **Record Backup Demo Video** | Record a complete run-through of all five trigger paths as a fallback for the live demo. |
+| <input type="checkbox" /> | **Record Backup Demo Video** | Re-record all five trigger paths with clean takes; edit into a submission-ready demo video. |
 | <input type="checkbox" /> | **Final Project Demo** | Present AuraSync — device, app, and Firebase all operational; all five trigger paths ready. |

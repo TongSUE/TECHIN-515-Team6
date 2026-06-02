@@ -332,10 +332,8 @@ export const strings = {
             {
               label: '第 3 周',
               items: [
-                'SPH0645 I2S 麦克风调试',
-                'ESP-SR 唤醒词状态机',
-                '实时 Streamlit 串口监控',
-                '原理图更新（SPH0645 + PIR + 2N2222）',
+                'I2S 麦克风调试 + ESP-SR 唤醒词流程',
+                'Streamlit 实时串口监控',
                 '开发日志撰写',
               ],
             },
@@ -343,22 +341,21 @@ export const strings = {
               label: '第 4 周',
               items: [
                 'AuraSync 统一固件（PIR + 语音 + Firebase）',
-                '双层状态机架构设计（与 Lucia 共同设计）',
-                '省电优化——WiFi 调制解调器休眠 + Core 0 频率限制',
-                '移动端应用——Firebase 喷雾历史查看器（Expo + RN）',
+                '省电优化（WiFi 调制解调器休眠）',
+                '移动端应用——喷雾历史查看器（Expo + RN）',
               ],
             },
             {
               label: '第 5 周',
               items: [
-                '移动端应用实时展示（Expo SDK 54 + Firebase JS SDK 10）',
+                '移动端应用实时展示（Expo SDK 54）',
                 '开发日志撰写',
               ],
             },
             {
               label: '第 6 周',
               items: [
-                'PCB 设计 v1——圆形 R=45mm，JST 接插件封装，LPKF 铣床打样',
+                'PCB v1——圆形 R=45mm，JST 接插件封装，LPKF 打样',
                 'Milestone 2 幻灯片',
                 '开发日志撰写',
               ],
@@ -366,18 +363,26 @@ export const strings = {
             {
               label: '第 7 周',
               items: [
-                'App UI 优化——触发图标补全（iaq_poor 🌫️、p3_shower_end 🚿）、IAQ 气泡位置修复、储液槽重置功能',
-                '设备在线状态指示（顶栏双行：Firebase + ESP32）',
-                '透明上盖翻模（与 Lucia 合作）',
-                'Open House 展示',
+                'App UI——图标补全、IAQ 气泡位置、储液槽重置',
+                '设备在线状态指示（双行：Firebase + ESP32）',
+                '透明上盖翻模 · Open House 展示',
+                '开发日志撰写',
+              ],
+            },
+            {
+              label: '第 8 周',
+              items: [
+                'PCB 焊接',
+                '外壳——SLA 打印、湿磨收尾、上盖修补',
+                '整机组装',
                 '开发日志撰写',
               ],
             },
           ],
         },
         {
-          role: '硬件 · 机器学习 · 固件 · 数据采集 · CAD',
-          bio: '负责硬件集成与数据科学。完成了 BME680 调试，构建了端到端 ML 流水线——IAQ 随机森林 + 淋浴 1D-CNN——并将训练好的模型以 C 权重数组形式集成进固件实现端侧推理，同时管理外壳原型设计并主导里程碑演示。',
+          role: '硬件 · 机器学习 · 固件 · CAD',
+          bio: '负责硬件集成与 ML。完成了 BME680 调试，构建了 IAQ MLP + 淋浴 CNN 流水线，将模型集成进固件实现端侧推理，主导外壳 CAD，并推进了 AuraSync 固件从 v3 到 v4 的演进。',
           weeks: [
             {
               label: '第 1 周',
@@ -385,47 +390,54 @@ export const strings = {
             },
             {
               label: '第 2 周',
-              items: ['3D 外壳原型（CAD）', '机器学习数据集调研与策略', '数据流程规划'],
+              items: ['3D 外壳原型（CAD）', '机器学习数据集调研', '数据流程规划'],
             },
             {
               label: '第 3 周',
               items: [
-                'HC-SR501 PIR 传感器集成',
-                '超声波雾化器电路（2N2222 三极管）',
-                '里程碑 1 演示幻灯片',
+                'PIR 传感器集成 + 雾化器电路（2N2222）',
+                '里程碑 1 幻灯片',
               ],
             },
             {
               label: '第 4 周',
               items: [
-                'BME680 传感器调试与 I2C 地址验证',
-                '双层状态机架构设计（与 Yutong 共同设计）',
+                'BME680 传感器调试与 I2C 验证',
+                '双层状态机架构（与 Yutong 共同设计）',
               ],
             },
             {
               label: '第 5 周',
               items: [
-                'BME680 浴室数据采集（16 927 条读数，14 个会话）',
-                'IAQ 随机森林流水线（CV Macro F1 0.77 ± 0.17）',
-                '淋浴 1D-CNN 检测器（Val F1 0.77，AUC 0.94）',
-                'BSEC2 固件升级（自标定 IAQ 指数）',
+                'BME680 浴室数据采集（16 927 条读数）',
+                'IAQ MLP + 淋浴 CNN（Val F1 0.77，AUC 0.94）',
+                'BSEC2 固件升级',
               ],
             },
             {
               label: '第 6 周',
               items: [
-                'ML 固件集成——IAQ MLP + 淋浴 CNN 导出为 C 权重数组，端侧推理（第二轮 Val F1 0.902）',
-                '外壳 v2 重设计——圆柱形两段卡扣结构，PLA 打印',
+                'ML 端侧推理——C 权重头文件，Val F1 0.902',
+                '外壳 v2（圆柱形卡扣结构，PLA 打印）',
                 'Milestone 2 幻灯片',
               ],
             },
             {
               label: '第 7 周',
               items: [
-                'AuraSync v4 固件——统一 WiFi 处理、IAQ MLP 替换原始气体阈值、恢复 VOC+PIR 触发、DEMO_MODE 标志；全部 5 条触发路径硬件验证完成',
-                '外壳 v3 CAD——上壳加高、USB-C 开口、修订 PCB 固定与麦克风位置',
-                '透明上盖翻模——硅胶模具 + 透明树脂；PLA 层纹赋予磨砂玻璃质感',
-                'Open House 展示',
+                'AuraSync v4——DEMO_MODE、VOC+PIR 锁存、全部 5 条触发路径',
+                '外壳 v3 CAD',
+                '透明上盖翻模 · Open House 展示',
+              ],
+            },
+            {
+              label: '第 8 周',
+              items: [
+                'LED 灯带——5 种状态动画',
+                '语音调优——新增"Release"触发词',
+                '整机组装',
+                '树脂上盖翻模（备用）',
+                '最终演示幻灯片',
               ],
             },
           ],
